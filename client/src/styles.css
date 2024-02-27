@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* You can add global styles to this file, and also import other style files */
+
+:root {
+  --font-family: 'DiscordFont';
+
+  --dc-purple-50: 238 243 255;
+  --dc-purple-100: 224 233 255;
+  --dc-purple-200: 198 214 255;
+  --dc-purple-300: 164 185 253;
+  --dc-purple-400: 128 147 249;
+  --dc-purple-500: 88 101 242;
+  --dc-purple-600: 68 69 231;
+  --dc-purple-700: 56 54 204;
+  --dc-purple-800: 47 47 164;
+  --dc-purple-900: 45 47 130;
+  --dc-purple-950: 26 26 76;
+
+  --dc-green-50: 238 255 242;
+  --dc-green-100: 216 255 228;
+  --dc-green-200: 180 254 202;
+  --dc-green-300: 121 252 162;
+  --dc-green-400: 87 242 135;
+  --dc-green-500: 15 216 78;
+  --dc-green-600: 5 180 60;
+  --dc-green-700: 8 141 51;
+  --dc-green-800: 13 110 45;
+  --dc-green-900: 12 91 39;
+  --dc-green-950: 0 51 18;
+
+  --dc-yellow-50: 254 252 232;
+  --dc-yellow-100: 254 250 195;
+  --dc-yellow-200: 255 242 137;
+  --dc-yellow-300: 254 231 92;
+  --dc-yellow-400: 251 209 20;
+  --dc-yellow-500: 235 184 7;
+  --dc-yellow-600: 203 141 3;
+  --dc-yellow-700: 162 101 6;
+  --dc-yellow-800: 134 79 13;
+  --dc-yellow-900: 113 65 18;
+  --dc-yellow-950: 66 33 6;
+
+  --dc-pink-50: 253 242 248;
+  --dc-pink-100: 252 231 244;
+  --dc-pink-200: 251 207 234;
+  --dc-pink-300: 249 168 215;
+  --dc-pink-400: 244 114 187;
+  --dc-pink-500: 235 69 158;
+  --dc-pink-600: 218 40 127;
+  --dc-pink-700: 189 25 100;
+  --dc-pink-800: 157 23 83;
+  --dc-pink-900: 131 24 72;
+  --dc-pink-950: 80 7 39;
+
+  --dc-red-50: 254 242 242;
+  --dc-red-100: 254 226 226;
+  --dc-red-200: 253 203 204;
+  --dc-red-300: 251 166 167;
+  --dc-red-400: 247 114 116;
+  --dc-red-500: 237 66 69;
+  --dc-red-600: 218 40 43;
+  --dc-red-700: 183 30 33;
+  --dc-red-800: 152 28 30;
+  --dc-red-900: 126 30 32;
+  --dc-red-950: 68 11 12;
+
+  --dc-neutral-50: 244 246 247;
+  --dc-neutral-100: 228 231 233;
+  --dc-neutral-200: 203 209 214;
+  --dc-neutral-300: 167 177 185;
+  --dc-neutral-400: 124 137 148;
+  --dc-neutral-500: 97 110 121;
+  --dc-neutral-600: 83 92 103;
+  --dc-neutral-700: 71 77 87;
+  --dc-neutral-800: 63 68 75;
+  --dc-neutral-850: 56 60 65;
+  --dc-neutral-900: 48 51 56;
+  --dc-neutral-950: 42 45 49;
+  --dc-neutral-1000: 34 37 42;
+}
+
+@layer base {
+  * {
+    @apply focus-visible:ring-2 focus-visible:ring-sky-500 outline-none;
+  }
+
+  *::-webkit-scrollbar {
+    @apply w-1.5 bg-dc-neutral-950 rounded-full;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    @apply bg-dc-neutral-1000 rounded-full;
+  }
+}
+
+@font-face {
+  font-family: 'DiscordFont';
+  src: url(./assets/fonts/ggsans-Normal.ttf);
+  font-weight: normal;
+}
+
+@font-face {
+  font-family: 'DiscordFont';
+  src: url(./assets/fonts/ggsans-Medium.ttf);
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: 'DiscordFont';
+  src: url(./assets/fonts/ggsans-Semibold.ttf);
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: 'DiscordFont';
+  src: url(./assets/fonts/ggsans-Bold.ttf);
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: 'DiscordFont';
+  src: url(./assets/fonts/ggsans-ExtraBold.ttf);
+  font-weight: 800;
+}
+
+@font-face {
+  font-family: 'DiscordFont';
+  src: url(./assets/fonts/ggsans-NormalItalic.ttf);
+  font-weight: 400;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'DiscordFont';
+  src: url(./assets/fonts/ggsans-MediumItalic.ttf);
+  font-weight: 500;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'DiscordFont';
+  src: url(./assets/fonts/ggsans-SemiboldItalic.ttf);
+  font-weight: 600;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'DiscordFont';
+  src: url(./assets/fonts/ggsans-BoldItalic.ttf);
+  font-weight: 700;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'DiscordFont';
+  src: url(./assets/fonts/ggsans-ExtraBoldItalic.ttf);
+  font-weight: 800;
+  font-style: italic;
+}
