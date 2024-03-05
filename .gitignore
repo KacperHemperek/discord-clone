@@ -1,0 +1,6 @@
+server/bin
+server/.env
+
+.env
+
+.idea

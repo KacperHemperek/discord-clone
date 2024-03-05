@@ -1,7 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/kacperhemperek/discord-go/api"
+)
 
 func main() {
-	fmt.Println("Hello, World!")
+	s := api.NewApiServer(8080)
+	fmt.Println("Change")
+	s.Start()
 }
