@@ -18,11 +18,10 @@ func NewApiServer(port int) *Server {
 
 func (s *Server) Start() {
 	router := mux.NewRouter()
-	db := store.Init()
+	db := store.NewDB()
 
-	fmt.Print(db)
+	fmt.Println(db)
 
-	router.HandleFunc("/api/auth", HandlerFunc(authHandler)).Methods("GET")
 	router.HandleFunc("/api/users", HandlerFunc(func(w http.ResponseWriter, r *http.Request, c *Context) error {
 		return WriteJson(w, http.StatusOK, c)
 	})).Methods("GET")
@@ -31,8 +30,4 @@ func (s *Server) Start() {
 
 	fmt.Printf("Server is running on port %d\n", s.port)
 	log.Fatal(http.ListenAndServe(portStr, router))
-}
-
-func authHandler(w http.ResponseWriter, r *http.Request, c *Context) error {
-	return WriteJson(w, http.StatusOK, c.User)
 }

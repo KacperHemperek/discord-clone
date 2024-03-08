@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kacperhemperek/discord-go/store"
 	"net/http"
 )
 
@@ -95,7 +94,6 @@ func (e *Error) Error() string {
 type Handler func(w http.ResponseWriter, r *http.Request, c *Context) error
 
 type Context struct {
-	User *store.User
 }
 
 type JSON map[string]interface{}

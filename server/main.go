@@ -16,6 +16,5 @@ func init() {
 }
 func main() {
 	s := api.NewApiServer(8080)
-	fmt.Println("Change")
 	s.Start()
 }

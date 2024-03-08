@@ -1,36 +1,31 @@
 package store
 
 import (
+	"database/sql"
 	"fmt"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"os"
 )
 
-type Database struct {
-	Users []*User
-}
-
-func Init() *gorm.DB {
+func NewDB() *Database {
 	username := os.Getenv("DB_USER")
 	password := os.Getenv("DB_PASSWORD")
-	name := os.Getenv("DB_NAME")
+	dbname := os.Getenv("DB_NAME")
+	dburl := fmt.Sprintf("user=%s password=%s dbname=%s host=localhost sslmode=disable", username, password, dbname)
 
-	fmt.Printf("username: %s, password: %s, name: %s", username, password, name)
-	connStr := fmt.Sprintf("user=%s password=%s host=localhost dbname=%s sslmode=disable", username, password, name)
-
-	db, err := gorm.Open(postgres.Open(connStr), &gorm.Config{})
+	db, err := sql.Open("pgx", dburl)
 
 	if err != nil {
-		panic(fmt.Errorf("failed to connect to database: %s", err.Error()))
+		fmt.Println("Error connecting to database")
+		panic(err)
+	}
+
+	if err = db.Ping(); err != nil {
+		fmt.Println("Error pinging database")
+		panic(err)
 	}
 
 	return db
 }
 
-type User struct {
-	ID       int    `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"-"`
-}
+type Database = sql.DB
