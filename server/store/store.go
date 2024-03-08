@@ -1,46 +1,31 @@
 package store
 
-import "fmt"
+import (
+	"fmt"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"os"
+)
 
 type Database struct {
 	Users []*User
 }
 
-var db = &Database{
-	Users: make([]*User, 0, 10),
-}
+func Init() *gorm.DB {
+	username := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	name := os.Getenv("DB_NAME")
 
-func GetUserByUsername(username string) (*User, error) {
-	for _, user := range db.Users {
-		if user.Username == username {
-			return user, nil
-		}
+	fmt.Printf("username: %s, password: %s, name: %s", username, password, name)
+	connStr := fmt.Sprintf("user=%s password=%s host=localhost dbname=%s sslmode=disable", username, password, name)
+
+	db, err := gorm.Open(postgres.Open(connStr), &gorm.Config{})
+
+	if err != nil {
+		panic(fmt.Errorf("failed to connect to database: %s", err.Error()))
 	}
-	return nil, fmt.Errorf("user with username %s not found", username)
-}
 
-func GetUserByEmail(email string) (*User, error) {
-	for _, user := range db.Users {
-		if user.Email == email {
-			return user, nil
-		}
-	}
-	return nil, fmt.Errorf("user with email %s not found", email)
-}
-
-func CreateUser(username, email, password string) (*User, error) {
-	user := &User{
-		ID:       len(db.Users) + 1,
-		Username: username,
-		Email:    email,
-		Password: password,
-	}
-	db.Users = append(db.Users, user)
-	return user, nil
-}
-
-type Limiter struct {
-	Ips map[string]string
+	return db
 }
 
 type User struct {

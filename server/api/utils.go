@@ -26,31 +26,29 @@ func HandlerFunc(handler Handler) http.HandlerFunc {
 	}
 }
 
-func AuthFunc(handler Handler) Handler {
-	return func(w http.ResponseWriter, r *http.Request, c *Context) error {
-		authCookie, err := getAuthCookie(r)
-
-		if err != nil {
-			return &Error{
-				Code:    http.StatusUnauthorized,
-				Message: "Unauthorized",
-			}
-		}
-
-		user, err := store.GetUserByEmail(authCookie.Value)
-
-		if err != nil {
-			return &Error{
-				Code:    http.StatusUnauthorized,
-				Message: "Unauthorized",
-			}
-		}
-
-		c.User = user
-
-		return handler(w, r, c)
-	}
-}
+//func AuthFunc(handler Handler) Handler {
+//	return func(w http.ResponseWriter, r *http.Request, c *Context) error {
+//		authCookie, err := getAuthCookie(r)
+//
+//		if err != nil {
+//			return &Error{
+//				Code:    http.StatusUnauthorized,
+//				Message: "Unauthorized",
+//			}
+//		}
+//
+//		if err != nil {
+//			return &Error{
+//				Code:    http.StatusUnauthorized,
+//				Message: "Unauthorized",
+//			}
+//		}
+//
+//		c.User = user
+//
+//		return handler(w, r, c)
+//	}
+//}
 
 func WriteJson(w http.ResponseWriter, status int, data interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
