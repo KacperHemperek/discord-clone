@@ -1,28 +1,50 @@
-package api
+package utils
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 )
+
+func ReadBody(r *http.Request, v interface{}) error {
+	return json.NewDecoder(r.Body).Decode(v)
+}
 
 func HandlerFunc(handler Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handlerErr := handler(w, r, &Context{})
+		defer logRequest(r, time.Now())
+		handlerErr := handler(w, r)
 		if handlerErr != nil {
-			fmt.Printf("ERROR %s [%s]: %s\n", r.URL, r.Method, handlerErr.Error())
-			var err *Error
+			var err *ApiError
 			if errors.As(handlerErr, &err) {
+				logApiError(err, r)
 				WriteJson(w, err.Code, err)
 				return
 			}
-			WriteJson(w, http.StatusInternalServerError, &Error{
+			logError(handlerErr, r)
+			WriteJson(w, http.StatusInternalServerError, &ApiError{
 				Code:    http.StatusInternalServerError,
-				Message: "Internal Server Error test restart",
+				Message: "Internal Server ApiError test restart",
 			})
 		}
 	}
+}
+
+func logApiError(err *ApiError, r *http.Request) {
+	fmt.Printf("ERROR %s [%s]: %s\n", r.URL, r.Method, err.Error())
+	if err.Cause != nil {
+		fmt.Printf("CAUSE: %s\n", err.Cause.Error())
+	}
+}
+
+func logError(err error, r *http.Request) {
+	fmt.Printf("ERROR %s [%s]: %s\n", r.URL, r.Method, err.Error())
+}
+
+func logRequest(r *http.Request, now time.Time) {
+	fmt.Printf("%s [%s] %s\n", r.Method, r.URL, time.Since(now))
 }
 
 //func AuthFunc(handler Handler) Handler {
@@ -30,14 +52,14 @@ func HandlerFunc(handler Handler) http.HandlerFunc {
 //		authCookie, err := getAuthCookie(r)
 //
 //		if err != nil {
-//			return &Error{
+//			return &ApiError{
 //				Code:    http.StatusUnauthorized,
 //				Message: "Unauthorized",
 //			}
 //		}
 //
 //		if err != nil {
-//			return &Error{
+//			return &ApiError{
 //				Code:    http.StatusUnauthorized,
 //				Message: "Unauthorized",
 //			}
@@ -56,10 +78,6 @@ func WriteJson(w http.ResponseWriter, status int, data interface{}) error {
 		return json.NewEncoder(w).Encode(data)
 	}
 	return nil
-}
-
-func ReadBody(r *http.Request, v interface{}) error {
-	return json.NewDecoder(r.Body).Decode(v)
 }
 
 func NewUserCookie(email string) *http.Cookie {
@@ -81,19 +99,6 @@ func getAuthCookie(r *http.Request) (*http.Cookie, error) {
 	return cookie, nil
 }
 
-type Error struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Cause   error  `json:"-"`
-}
-
-func (e *Error) Error() string {
-	return fmt.Sprintf("%d (%s)", e.Code, e.Message)
-}
-
-type Handler func(w http.ResponseWriter, r *http.Request, c *Context) error
-
-type Context struct {
-}
+type Handler func(w http.ResponseWriter, r *http.Request) error
 
 type JSON map[string]interface{}
