@@ -1,19 +1,19 @@
-import React from 'react';
+import React from "react";
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
   PopoverPortal,
-} from '@radix-ui/react-popover';
-import { Checkbox, CheckboxIndicator } from '@radix-ui/react-checkbox';
-import { ChatsTypes } from '@discord-clone-v2/types';
-import { CheckIcon, PlusIcon } from 'lucide-react';
-import { useAllFriends } from '../../hooks/reactQuery/useAllFriends';
-import DCButton from '../Button';
-import { cn } from '../../utils/cn';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../utils/api';
-import { useToast } from '../../hooks/useToast';
+} from "@radix-ui/react-popover";
+import { Checkbox, CheckboxIndicator } from "@radix-ui/react-checkbox";
+import { ChatsTypes } from "@discord-clone-v2/types";
+import { CheckIcon, PlusIcon } from "lucide-react";
+import { useAllFriends } from "../../hooks/reactQuery/useAllFriends";
+import DCButton from "../Button";
+import { cn } from "../../utils/cn";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "../../api";
+import { useToast } from "../../hooks/useToast";
 
 function UserCheckboxItem({
   username,
@@ -29,20 +29,20 @@ function UserCheckboxItem({
   avatar?: string;
 }) {
   return (
-    <label className='flex justify-between items-center cursor-pointer py-1 hover:bg-dc-neutral-850 px-2 -mx-2 rounded-sm'>
-      <div className='flex items-center gap-2'>
+    <label className="flex justify-between items-center cursor-pointer py-1 hover:bg-dc-neutral-850 px-2 -mx-2 rounded-sm">
+      <div className="flex items-center gap-2">
         {/* TODO: replace with avatar of user in future */}
-        <div className='w-8 h-8 rounded-full bg-dc-neutral-800' />
-        <p className='truncate max-w-[200px]'>{username}</p>
+        <div className="w-8 h-8 rounded-full bg-dc-neutral-800" />
+        <p className="truncate max-w-[200px]">{username}</p>
       </div>
       <Checkbox
         onCheckedChange={onCheck}
         checked={selected}
         className='p-1 border-[1.5px] border-dc-neutral-600 rounded-md data-[state="checked"]:border-dc-purple-500 data-[state="checked"]:text-dc-purple-500'
       >
-        <div className='w-4 h-4 flex'>
+        <div className="w-4 h-4 flex">
           <CheckboxIndicator asChild>
-            <CheckIcon className='w-full h-full' strokeWidth={2.5} />
+            <CheckIcon className="w-full h-full" strokeWidth={2.5} />
           </CheckboxIndicator>
         </div>
       </Checkbox>
@@ -63,7 +63,7 @@ export default function CreateGroupChat() {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async () =>
-      api.post<ChatsTypes.CreateChatWithUsersSuccessResponseType>('/chats', {
+      api.post<ChatsTypes.CreateChatWithUsersSuccessResponseType>("/chats", {
         body: JSON.stringify({
           userIds: selectedIds,
         } as ChatsTypes.CreateChatWithUsersBodyType),
@@ -71,8 +71,8 @@ export default function CreateGroupChat() {
     onSuccess: () => {
       setSelectedIds([]);
       setOpen(false);
-      toast.success('Chat created successfully!');
-      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      toast.success("Chat created successfully!");
+      queryClient.invalidateQueries({ queryKey: ["chats"] });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -83,10 +83,10 @@ export default function CreateGroupChat() {
     const target = e.currentTarget;
 
     if (target.scrollTop > lastScrollPosition.current) {
-      console.log('scrolling down');
+      console.log("scrolling down");
       setShowBottomBorder(true);
     } else {
-      console.log('scrolling up');
+      console.log("scrolling up");
     }
 
     if (target.scrollTop === 0) {
@@ -120,37 +120,37 @@ export default function CreateGroupChat() {
     <Popover open={open} onOpenChange={changeOpenState}>
       <PopoverTrigger>
         <button>
-          <PlusIcon className='w-4 h-4 text-dc-neutral-300' />
+          <PlusIcon className="w-4 h-4 text-dc-neutral-300" />
         </button>
       </PopoverTrigger>
 
       <PopoverPortal>
         <PopoverContent
-          className='bg-dc-neutral-900 rounded-md border border-dc-neutral-1000 w-[420px] flex flex-col text-dc-neutral-50 shadow-md'
-          side='bottom'
+          className="bg-dc-neutral-900 rounded-md border border-dc-neutral-1000 w-[420px] flex flex-col text-dc-neutral-50 shadow-md"
+          side="bottom"
           sideOffset={8}
-          align='start'
+          align="start"
         >
           <div
             className={cn(
-              'flex flex-col px-4 pt-4 border-b transition-colors',
+              "flex flex-col px-4 pt-4 border-b transition-colors",
               showBottomBorder
-                ? 'border-b-dc-neutral-1000'
-                : 'border-b-transparent',
+                ? "border-b-dc-neutral-1000"
+                : "border-b-transparent",
             )}
           >
-            <h2 className='text-lg font-semibold text-dc-neutral-50'>
+            <h2 className="text-lg font-semibold text-dc-neutral-50">
               Choose friends
             </h2>
-            <p className='text-xs font-medium text-dc-neutral-300 pb-4'>
+            <p className="text-xs font-medium text-dc-neutral-300 pb-4">
               You can add up to {data?.friends.length} friends
             </p>
           </div>
           <div
-            className='flex flex-col px-4 overflow-y-auto max-h-36'
+            className="flex flex-col px-4 overflow-y-auto max-h-36"
             onScroll={handleScroll}
           >
-            <div className='grid pb-2 gap-1'>
+            <div className="grid pb-2 gap-1">
               {data.friends.map((friend, i) => (
                 <UserCheckboxItem
                   {...friend}
@@ -161,11 +161,11 @@ export default function CreateGroupChat() {
               ))}
             </div>
           </div>
-          <div className='p-4 relative'>
-            <span className='absolute top-0 left-0 flex w-full px-2'>
-              <span className='h-[1px] flex-grow bg-dc-neutral-850'></span>
+          <div className="p-4 relative">
+            <span className="absolute top-0 left-0 flex w-full px-2">
+              <span className="h-[1px] flex-grow bg-dc-neutral-850"></span>
             </span>
-            <DCButton onClick={createGroupChat} className='w-full'>
+            <DCButton onClick={createGroupChat} className="w-full">
               Create a group chat
             </DCButton>
           </div>

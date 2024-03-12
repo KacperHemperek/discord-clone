@@ -1,21 +1,18 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { ChatsTypes } from '@discord-clone-v2/types';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  ChatSocketMessageType,
-  ChatTypes,
-} from '../../types/chats.ts';
-import { useGroupedMessages } from '../../hooks/useGroupedMessages';
-import { useToast } from '../../hooks/useToast';
-import { getWebsocketConnection } from '../../utils/websocket';
-import { api } from '../../utils/api';
-import { useAuth } from '../../context/AuthProvider';
-import OneDayChatMessageGroup from '../../components/chats/OneDayChatMessageGroup';
-import ChatLinkList from '../../components/chats/ChatLinkList';
+import React from "react";
+import { useParams } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { ChatsTypes } from "@discord-clone-v2/types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChatSocketMessageType, ChatTypes } from "../../types/chats.ts";
+import { useGroupedMessages } from "../../hooks/useGroupedMessages";
+import { useToast } from "../../hooks/useToast";
+import { getWebsocketConnection } from "../../utils/websocket";
+import { api } from "../../api";
+import { useAuth } from "../../context/AuthProvider";
+import OneDayChatMessageGroup from "../../components/chats/OneDayChatMessageGroup";
+import ChatLinkList from "../../components/chats/ChatLinkList";
 
 const nameChangeSchema = z.object({
   name: z.string().min(1),
@@ -44,7 +41,7 @@ function NameChangeElement({
         `/chats/${chatId}/update-name`,
         {
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(data),
         },
@@ -54,7 +51,7 @@ function NameChangeElement({
       updateChatName(inputData.name);
       const oldData =
         queryClient.getQueryData<ChatsTypes.GetChatsSuccessResponseType>([
-          'chats',
+          "chats",
         ]);
 
       if (!oldData) return;
@@ -74,14 +71,14 @@ function NameChangeElement({
         chats: newChatList,
       };
 
-      queryClient.setQueryData(['chats'], newData);
+      queryClient.setQueryData(["chats"], newData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      queryClient.invalidateQueries({ queryKey: ["chats"] });
     },
     onError: (err) => {
       toast.error(err.message);
-      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      queryClient.invalidateQueries({ queryKey: ["chats"] });
 
       if (!oldChatName) return;
 
@@ -97,8 +94,8 @@ function NameChangeElement({
   });
 
   React.useEffect(() => {
-    if (name && form.getValues('name') !== name) {
-      form.setValue('name', name);
+    if (name && form.getValues("name") !== name) {
+      form.setValue("name", name);
     }
   }, [name, form]);
 
@@ -110,13 +107,13 @@ function NameChangeElement({
       })}
     >
       <input
-        type='text'
-        {...form.register('name')}
-        className='px-2 rounded-md bg-transparent border ring-0 border-transparent font-semibold hover:border-dc-neutral-950 focus:bg-dc-neutral-950 focus:border-dc-neutral-1000 disabled:hover:bg-transparent disabled:hover:border-transparent disabled:cursor-text'
-        size={form.watch('name').length}
+        type="text"
+        {...form.register("name")}
+        className="px-2 rounded-md bg-transparent border ring-0 border-transparent font-semibold hover:border-dc-neutral-950 focus:bg-dc-neutral-950 focus:border-dc-neutral-1000 disabled:hover:bg-transparent disabled:hover:border-transparent disabled:cursor-text"
+        size={form.watch("name").length}
         disabled={disabled || isPending}
       />
-      <button className='hidden' type='submit' />
+      <button className="hidden" type="submit" />
     </form>
   );
 }
@@ -134,7 +131,7 @@ export default function PrivateChat() {
   >([]);
 
   const { data: chatInfo } = useQuery({
-    queryKey: ['chat', chatId],
+    queryKey: ["chat", chatId],
     queryFn: async () =>
       api.get<ChatsTypes.GetChatInfoWithMessagesSuccessResponseType>(
         `/chats/${chatId}`,
@@ -143,13 +140,13 @@ export default function PrivateChat() {
 
   const groupedMessages = useGroupedMessages(chatInfo?.messages ?? []);
 
-  const [newMessage, setNewMessage] = React.useState<string>('');
+  const [newMessage, setNewMessage] = React.useState<string>("");
 
   React.useEffect(() => {
     websocketRef.current = getWebsocketConnection(`/chats/${chatId}`);
 
     if (websocketRef.current) {
-      websocketRef.current.addEventListener('message', (event) => {
+      websocketRef.current.addEventListener("message", (event) => {
         const data = JSON.parse(event.data) as ChatsTypes.NewMessageType;
 
         if (data.type === ChatSocketMessageType.newMessage) {
@@ -170,7 +167,7 @@ export default function PrivateChat() {
       if (!lastMessage) return;
 
       queryClient.setQueryData(
-        ['chat', chatId],
+        ["chat", chatId],
         (
           oldData: ChatsTypes.GetChatInfoWithMessagesSuccessResponseType,
         ): ChatsTypes.GetChatInfoWithMessagesSuccessResponseType => {
@@ -195,7 +192,7 @@ export default function PrivateChat() {
     }
 
     queryClient.setQueryData(
-      ['chat', chatId],
+      ["chat", chatId],
       (
         oldData: ChatsTypes.GetChatInfoWithMessagesSuccessResponseType,
       ): ChatsTypes.GetChatInfoWithMessagesSuccessResponseType => ({
@@ -227,7 +224,7 @@ export default function PrivateChat() {
     };
 
     queryClient.setQueryData(
-      ['chat', chatId],
+      ["chat", chatId],
       (
         oldData: ChatsTypes.GetChatInfoWithMessagesSuccessResponseType,
       ): ChatsTypes.GetChatInfoWithMessagesSuccessResponseType => ({
@@ -239,12 +236,12 @@ export default function PrivateChat() {
     setSentMessages((prev) => {
       return [...prev, messageObj];
     });
-    setNewMessage('');
+    setNewMessage("");
   }
 
   function updateChatName(name: string) {
     queryClient.setQueryData(
-      ['chat', chatId],
+      ["chat", chatId],
       (
         oldData: ChatsTypes.GetChatInfoWithMessagesSuccessResponseType,
       ): ChatsTypes.GetChatInfoWithMessagesSuccessResponseType => ({
@@ -266,10 +263,10 @@ export default function PrivateChat() {
       : `Message ${chatName}`;
 
   return (
-    <div className='max-h-screen h-full flex-grow flex'>
+    <div className="max-h-screen h-full flex-grow flex">
       <ChatLinkList />
-      <div className='flex-grow flex flex-col'>
-        <nav className='border-b flex border-dc-neutral-1000 w-full p-3 gap-4'>
+      <div className="flex-grow flex flex-col">
+        <nav className="border-b flex border-dc-neutral-1000 w-full p-3 gap-4">
           {!!chatName && !!chatId && (
             <NameChangeElement
               name={chatName}
@@ -280,7 +277,7 @@ export default function PrivateChat() {
           )}
         </nav>
 
-        <div className='flex flex-col-reverse flex-grow overflow-y-scroll px-4 py-6'>
+        <div className="flex flex-col-reverse flex-grow overflow-y-scroll px-4 py-6">
           {groupedMessages.map(({ date, messages }) => (
             <OneDayChatMessageGroup
               key={date.getTime()}
@@ -289,14 +286,14 @@ export default function PrivateChat() {
             />
           ))}
         </div>
-        <form onSubmit={sendMessage} className='w-full flex pt-0 pb-4 px-4'>
+        <form onSubmit={sendMessage} className="w-full flex pt-0 pb-4 px-4">
           <input
-            className='w-full p-2 rounded-md bg-dc-neutral-1000 outline-none'
+            className="w-full p-2 rounded-md bg-dc-neutral-1000 outline-none"
             placeholder={placeholder}
             onChange={(e) => setNewMessage(e.target.value)}
             value={newMessage}
           />
-          <button type='submit' hidden />
+          <button type="submit" hidden />
         </form>
       </div>
     </div>

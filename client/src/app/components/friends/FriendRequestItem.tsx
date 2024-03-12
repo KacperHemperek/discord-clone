@@ -1,10 +1,10 @@
-import React from 'react';
-import { Check, X } from 'lucide-react';
-import { useMutation } from '@tanstack/react-query';
-import { api } from '../../utils/api';
-import { useFriendRequests } from '../../context/FriendRequestsProvider';
-import FriendListItemButton from './FriendItemButton';
-import { CommonResponsesTypes } from '@discord-clone-v2/types';
+import React from "react";
+import { Check, X } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { api } from "../../api";
+import { useFriendRequests } from "../../context/FriendRequestsProvider";
+import FriendListItemButton from "./FriendItemButton";
+import { CommonResponsesTypes } from "@discord-clone-v2/types";
 
 export default function FriendRequestItem({
   id,
@@ -20,7 +20,7 @@ export default function FriendRequestItem({
   const { removeRequest } = useFriendRequests();
 
   const { mutate: acceptMutation } = useMutation({
-    mutationKey: ['friend-request-accept', id],
+    mutationKey: ["friend-request-accept", id],
     mutationFn: async () =>
       api.put<CommonResponsesTypes.MessageSuccessResponseType>(
         `/friends/invites/${id}/accept`,
@@ -31,7 +31,7 @@ export default function FriendRequestItem({
   });
 
   const { mutate: declineMutation } = useMutation({
-    mutationKey: ['friend-request-decline', id],
+    mutationKey: ["friend-request-decline", id],
     mutationFn: async () =>
       api.put<CommonResponsesTypes.MessageSuccessResponseType>(
         `/friends/invites/${id}/decline`,
@@ -51,16 +51,16 @@ export default function FriendRequestItem({
   }
 
   return (
-    <div className='relative flex w-full group'>
+    <div className="relative flex w-full group">
       {/* Top Border */}
-      <div className='top-0 left-0 right-0 absolute h-[1px] bg-dc-neutral-850' />
-      <div className='flex justify-between items-center flex-grow py-3 px-3 -mx-3 rounded-md group-hover:bg-dc-neutral-850 transition-colors duration-100'>
+      <div className="top-0 left-0 right-0 absolute h-[1px] bg-dc-neutral-850" />
+      <div className="flex justify-between items-center flex-grow py-3 px-3 -mx-3 rounded-md group-hover:bg-dc-neutral-850 transition-colors duration-100">
         {/* User information */}
-        <div className='flex flex-col'>
-          <h2 className='font-semibold'>{username}</h2>
+        <div className="flex flex-col">
+          <h2 className="font-semibold">{username}</h2>
         </div>
         {/* Action Buttons */}
-        <div className='flex gap-3'>
+        <div className="flex gap-3">
           <FriendListItemButton
             onClick={acceptFriendRequest}
             icon={<Check size={20} />}

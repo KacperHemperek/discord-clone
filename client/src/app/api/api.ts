@@ -1,8 +1,12 @@
-import type { ErrorsTypes } from '@discord-clone-v2/types';
-import { ClientError } from './clientError';
+import { ClientError } from "../utils/clientError";
 
-type RequestOptions = Omit<RequestInit, 'method'>;
-type GetRequestOptions = Omit<RequestOptions, 'body'>;
+type RequestOptions = Omit<RequestInit, "method">;
+type GetRequestOptions = Omit<RequestOptions, "body">;
+
+type ApiErrorResponse = {
+  message: string;
+  code: number;
+};
 
 export class api {
   /**
@@ -18,7 +22,7 @@ export class api {
   ): Promise<T> {
     return request<T>(path, {
       ...options,
-      method: 'GET',
+      method: "GET",
     });
   }
 
@@ -31,7 +35,7 @@ export class api {
   static async post<T>(path: string, options: RequestOptions = {}): Promise<T> {
     return await request<T>(path, {
       ...options,
-      method: 'POST',
+      method: "POST",
     });
   }
   /**
@@ -43,7 +47,7 @@ export class api {
   static async put<T>(path: string, options: RequestOptions = {}): Promise<T> {
     return await request<T>(path, {
       ...options,
-      method: 'PUT',
+      method: "PUT",
     });
   }
 
@@ -59,7 +63,7 @@ export class api {
   ): Promise<T> {
     return await request<T>(path, {
       ...options,
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 }
@@ -67,17 +71,17 @@ export class api {
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${import.meta.env.VITE_API_URL}${path}`;
 
-  const baseHeaders: RequestInit['headers'] = {
-    'Content-Type': 'application/json',
+  const baseHeaders: RequestInit["headers"] = {
+    "Content-Type": "application/json",
   };
 
   const baseOptions: RequestInit = {
-    credentials: 'include',
+    credentials: "include",
   };
 
   let headers;
 
-  if (options.method === 'GET') {
+  if (options.method === "GET") {
     headers = {
       ...options.headers,
     };
@@ -99,9 +103,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (!res.ok) {
-    const error: ErrorsTypes.ApiErrorResponse = await res.json();
+    const error: ApiErrorResponse = await res.json();
 
-    throw new ClientError(error.message, error.statusCode);
+    throw new ClientError(error.message, error.code);
   }
 
   return res.json();

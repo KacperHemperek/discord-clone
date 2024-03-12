@@ -1,12 +1,12 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../utils/api';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "../../api";
 
-import type { AuthTypes } from '@discord-clone-v2/types';
-import { MutationHookOptions } from '../../types/utils';
-import { useNavigate } from 'react-router-dom';
+import type { AuthTypes } from "@discord-clone-v2/types";
+import { MutationHookOptions } from "../../types/utils";
+import { useNavigate } from "react-router-dom";
 
 type AuthLoginMutationOptions = MutationHookOptions<
-  AuthTypes.LoginUserSuccessfullyResponseType['user'],
+  AuthTypes.LoginUserSuccessfullyResponseType["user"],
   Error,
   AuthTypes.LoginUserBodyType
 >;
@@ -20,7 +20,7 @@ export function useLogin(options?: AuthLoginMutationOptions) {
     ...options,
     mutationFn: async (data) => {
       const json = await api.post<AuthTypes.LoginUserSuccessfullyResponseType>(
-        '/auth/login',
+        "/auth/login",
         {
           body: JSON.stringify(data),
         },
@@ -29,8 +29,8 @@ export function useLogin(options?: AuthLoginMutationOptions) {
       return json.user;
     },
     onSuccess: (data, variables, context) => {
-      queryClient.setQueryData(['user'], data);
-      navigate('/home/friends/');
+      queryClient.setQueryData(["user"], data);
+      navigate("/home/friends/");
       options?.onSuccess?.(data, variables, context);
     },
   });
