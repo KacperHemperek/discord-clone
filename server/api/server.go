@@ -31,10 +31,25 @@ func (s *Server) Start() {
 		return utils.WriteJson(w, http.StatusOK, utils.JSON{"status": "ok"})
 	})).Methods("GET")
 
-	router.HandleFunc("/auth/register", utils.HandlerFunc(handlers.NewRegisterUserHandler(&handlers.RegisterUserParams{
-		UserService: userService,
-		Validator:   v,
-	}).Handle)).Methods(http.MethodPost)
+	router.HandleFunc(
+		"/auth/register",
+		utils.HandlerFunc(handlers.NewRegisterUserHandler(
+			&handlers.RegisterUserParams{
+				UserService: userService,
+				Validator:   v,
+			},
+		).Handle),
+	).Methods(http.MethodPost)
+
+	router.HandleFunc(
+		"/auth/login",
+		utils.HandlerFunc(handlers.NewLoginHandler(
+			&handlers.LoginUserParams{
+				UserService: userService,
+				Validator:   v,
+			},
+		).Handle),
+	).Methods(http.MethodPost)
 
 	portStr := fmt.Sprintf(":%d", s.port)
 
