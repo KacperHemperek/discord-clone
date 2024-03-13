@@ -1,13 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AuthTypes } from "@discord-clone-v2/types";
-import { MutationHookOptions } from "../../types/utils";
-import { api } from "../../api";
+import { MutationHookOptions } from "@app/types/utils";
+import { api, RegisterUserBodyType, RegisterUserResponseType } from "@app/api";
 
 type RegisterMutationOptions = MutationHookOptions<
-  AuthTypes.RegisterUserCreatedResponseType["user"],
+  RegisterUserResponseType["user"],
   Error,
-  AuthTypes.RegisterUserBodyType
+  RegisterUserBodyType
 >;
 
 export function useRegister(options?: RegisterMutationOptions) {
@@ -18,12 +17,9 @@ export function useRegister(options?: RegisterMutationOptions) {
   return useMutation({
     ...options,
     mutationFn: async (data) => {
-      const json = await api.post<AuthTypes.RegisterUserCreatedResponseType>(
-        "/auth/register",
-        {
-          body: JSON.stringify(data),
-        },
-      );
+      const json = await api.post<RegisterUserResponseType>("/auth/register", {
+        body: JSON.stringify(data),
+      });
 
       return json.user;
     },

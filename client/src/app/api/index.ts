@@ -1,2 +1,8 @@
 export { api } from "./api.ts";
-export type { LoginUserBodyType, LoginUserResponse } from "./types/auth.ts";
+export type {
+  LoginUserBodyType,
+  LoginUserResponse,
+  RegisterUserResponseType,
+  UserResponse,
+  RegisterUserBodyType,
+} from "./types/auth.ts";
