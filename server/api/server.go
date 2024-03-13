@@ -5,6 +5,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"github.com/kacperhemperek/discord-go/handlers"
+	"github.com/kacperhemperek/discord-go/middlewares"
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
 	"log"
@@ -25,31 +26,46 @@ func (s *Server) Start() {
 	store.RunMigrations(db)
 
 	v := validator.New()
+
+	// register all services
 	userService := store.NewUserService(db)
+
+	// register all middlewares
+	authMiddleware := middlewares.NewAuthMiddleware(&middlewares.AuthMiddlewareParams{UserService: userService})
 
 	router.HandleFunc("/healthcheck", utils.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 		return utils.WriteJson(w, http.StatusOK, utils.JSON{"status": "ok"})
 	})).Methods("GET")
 
+	registerHandler := handlers.NewRegisterUserHandler(&handlers.RegisterUserParams{
+		UserService: userService,
+		Validator:   v,
+	})
+
 	router.HandleFunc(
 		"/auth/register",
-		utils.HandlerFunc(handlers.NewRegisterUserHandler(
-			&handlers.RegisterUserParams{
-				UserService: userService,
-				Validator:   v,
-			},
-		).Handle),
+		utils.HandlerFunc(registerHandler.Handle),
 	).Methods(http.MethodPost)
+
+	loginHandler := handlers.NewLoginHandler(&handlers.LoginUserParams{
+		UserService: userService,
+		Validator:   v,
+	})
 
 	router.HandleFunc(
 		"/auth/login",
-		utils.HandlerFunc(handlers.NewLoginHandler(
-			&handlers.LoginUserParams{
-				UserService: userService,
-				Validator:   v,
-			},
-		).Handle),
+		utils.HandlerFunc(loginHandler.Handle),
 	).Methods(http.MethodPost)
+
+	getLoggedInUserHandler := handlers.NewGetLoggedInUserHandler(
+		&handlers.GetLoggedInUserParams{
+			UserService: userService,
+		},
+	)
+	router.HandleFunc(
+		"/auth/me",
+		utils.HandlerFunc(authMiddleware.Use(getLoggedInUserHandler.Handle)),
+	).Methods(http.MethodGet)
 
 	portStr := fmt.Sprintf(":%d", s.port)
 

@@ -3,9 +3,9 @@ package handlers
 import (
 	"errors"
 	"github.com/go-playground/validator/v10"
+	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
 )
 
@@ -28,6 +28,10 @@ type RegisterUserHandler struct {
 type LoginHandler struct {
 	userService *store.UserService
 	validator   *validator.Validate
+}
+
+type GetLoggedInUserHandler struct {
+	userService *store.UserService
 }
 
 func (h *RegisterUserHandler) Handle(w http.ResponseWriter, r *http.Request) error {
@@ -53,7 +57,7 @@ func (h *RegisterUserHandler) Handle(w http.ResponseWriter, r *http.Request) err
 		return &utils.ApiError{Code: http.StatusConflict, Message: "User with this email already exists", Cause: nil}
 	}
 
-	hashedPassword, err := encryptPassword(body.Password)
+	hashedPassword, err := utils.EncryptPassword(body.Password)
 
 	if err != nil {
 		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when creating a user", Cause: err}
@@ -66,6 +70,17 @@ func (h *RegisterUserHandler) Handle(w http.ResponseWriter, r *http.Request) err
 	if err != nil {
 		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when creating user", Cause: err}
 	}
+
+	accessToken, accessTokenError := utils.NewAccessToken(user.ID, user.Username, user.Email)
+	if accessTokenError != nil {
+		return accessTokenError
+	}
+	refreshToken, refreshTokenError := utils.NewRefreshToken(user.ID, user.Username, user.Email)
+	if refreshTokenError != nil {
+		return refreshTokenError
+	}
+
+	utils.SetAuthTokens(w, accessToken, refreshToken)
 
 	return utils.WriteJson(w, http.StatusCreated, user)
 }
@@ -98,12 +113,26 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 			return InvalidUserOrPasswordApiError
 		}
 
-		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when signing user in", Cause: err}
+		return err
 	}
 
-	if err := checkPassword(user.Password, body.Password); err != nil {
+	if err := utils.CheckPassword(user.Password, body.Password); err != nil {
 		return InvalidUserOrPasswordApiError
 	}
+
+	accessToken, err := utils.NewAccessToken(user.ID, user.Username, user.Email)
+
+	if err != nil {
+		return err
+	}
+
+	refreshToken, err := utils.NewRefreshToken(user.ID, user.Username, user.Email)
+
+	if err != nil {
+		return err
+	}
+
+	utils.SetAuthTokens(w, accessToken, refreshToken)
 
 	return utils.WriteJson(
 		w,
@@ -115,6 +144,11 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	)
 }
 
+func (h *GetLoggedInUserHandler) Handle(w http.ResponseWriter, _ *http.Request, user *models.User) error {
+
+	return utils.WriteJson(w, http.StatusOK, &utils.JSON{"user": user})
+}
+
 type RegisterUserParams struct {
 	UserService *store.UserService
 	Validator   *validator.Validate
@@ -123,6 +157,10 @@ type RegisterUserParams struct {
 type LoginUserParams struct {
 	UserService *store.UserService
 	Validator   *validator.Validate
+}
+
+type GetLoggedInUserParams struct {
+	UserService *store.UserService
 }
 
 func NewRegisterUserHandler(p *RegisterUserParams) *RegisterUserHandler {
@@ -139,16 +177,8 @@ func NewLoginHandler(p *LoginUserParams) *LoginHandler {
 	}
 }
 
-func checkPassword(hashedPassword, password string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-}
-
-func encryptPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-
-	if err != nil {
-		return "", err
+func NewGetLoggedInUserHandler(p *GetLoggedInUserParams) *GetLoggedInUserHandler {
+	return &GetLoggedInUserHandler{
+		userService: p.UserService,
 	}
-
-	return string(hashedPassword), nil
 }
