@@ -76,13 +76,17 @@ func (s *Server) Start() {
 	).Methods(http.MethodPost)
 
 	portStr := fmt.Sprintf(":%d", s.port)
-
 	fmt.Printf("Server is running on port %d\n", s.port)
+
+	corsRouter := setupCors(router)
+
+	log.Fatal(http.ListenAndServe(portStr, corsRouter))
+}
+
+func setupCors(r *mux.Router) http.Handler {
 	acceptedOrigins := []string{"http://localhost:5173", "http://localhost:4201"}
-	corsServer := cors.New(cors.Options{
+	return cors.New(cors.Options{
 		AllowedOrigins:   acceptedOrigins,
 		AllowCredentials: true,
-	}).Handler(router)
-
-	log.Fatal(http.ListenAndServe(portStr, corsServer))
+	}).Handler(r)
 }
