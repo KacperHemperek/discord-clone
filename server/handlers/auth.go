@@ -34,6 +34,8 @@ type GetLoggedInUserHandler struct {
 	userService *store.UserService
 }
 
+type LogoutUserHandler struct{}
+
 func (h *RegisterUserHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	body := &RegisterUserRequest{}
 
@@ -145,8 +147,13 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *GetLoggedInUserHandler) Handle(w http.ResponseWriter, _ *http.Request, user *models.User) error {
-
 	return utils.WriteJson(w, http.StatusOK, &utils.JSON{"user": user})
+}
+
+func (h *LogoutUserHandler) Handle(w http.ResponseWriter, _ *http.Request) error {
+	utils.RemoveAuthTokensCookies(w)
+
+	return utils.WriteJson(w, http.StatusOK, &utils.JSON{"message": "user successfully logged out"})
 }
 
 type RegisterUserParams struct {
@@ -181,4 +188,8 @@ func NewGetLoggedInUserHandler(p *GetLoggedInUserParams) *GetLoggedInUserHandler
 	return &GetLoggedInUserHandler{
 		userService: p.UserService,
 	}
+}
+
+func NewLogoutUserHandler() *LogoutUserHandler {
+	return &LogoutUserHandler{}
 }

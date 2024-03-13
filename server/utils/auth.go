@@ -3,6 +3,7 @@ package utils
 import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"time"
 )
 
 func CheckPassword(hashedPassword, password string) error {
@@ -33,4 +34,23 @@ func GetRefreshToken(r *http.Request) (string, error) {
 		return "", err
 	}
 	return cookie.Value, nil
+}
+
+func getTokenCookieWithExpiredDate(tokenName string) *http.Cookie {
+	expired := time.Now().Add(-1 * 7 * time.Hour)
+
+	return &http.Cookie{
+		Name:     tokenName,
+		Value:    "",
+		Path:     "/",
+		Expires:  expired,
+		MaxAge:   0,
+		Secure:   false,
+		HttpOnly: true,
+	}
+}
+
+func RemoveAuthTokensCookies(w http.ResponseWriter) {
+	http.SetCookie(w, getTokenCookieWithExpiredDate(AccessTokenCookieName))
+	http.SetCookie(w, getTokenCookieWithExpiredDate(RefreshTokenCookieName))
 }

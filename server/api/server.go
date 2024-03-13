@@ -67,6 +67,13 @@ func (s *Server) Start() {
 		utils.HandlerFunc(authMiddleware.Use(getLoggedInUserHandler.Handle)),
 	).Methods(http.MethodGet)
 
+	logoutHandler := handlers.NewLogoutUserHandler()
+
+	router.HandleFunc(
+		"/auth/logout",
+		utils.HandlerFunc(logoutHandler.Handle),
+	).Methods(http.MethodPost)
+
 	portStr := fmt.Sprintf(":%d", s.port)
 
 	fmt.Printf("Server is running on port %d\n", s.port)
