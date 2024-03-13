@@ -8,6 +8,7 @@ import (
 	"github.com/kacperhemperek/discord-go/middlewares"
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
+	"github.com/rs/cors"
 	"log"
 	"net/http"
 )
@@ -77,5 +78,11 @@ func (s *Server) Start() {
 	portStr := fmt.Sprintf(":%d", s.port)
 
 	fmt.Printf("Server is running on port %d\n", s.port)
-	log.Fatal(http.ListenAndServe(portStr, router))
+	acceptedOrigins := []string{"http://localhost:5173", "http://localhost:4201"}
+	corsServer := cors.New(cors.Options{
+		AllowedOrigins:   acceptedOrigins,
+		AllowCredentials: true,
+	}).Handler(router)
+
+	log.Fatal(http.ListenAndServe(portStr, corsServer))
 }

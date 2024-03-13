@@ -1,14 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "../../api";
-
-import type { AuthTypes } from "@discord-clone-v2/types";
-import { MutationHookOptions } from "../../types/utils";
+import { api, LoginUserBodyType, LoginUserResponse } from "@app/api";
+import { MutationHookOptions } from "@app/types/utils";
 import { useNavigate } from "react-router-dom";
 
 type AuthLoginMutationOptions = MutationHookOptions<
-  AuthTypes.LoginUserSuccessfullyResponseType["user"],
+  LoginUserResponse["user"],
   Error,
-  AuthTypes.LoginUserBodyType
+  LoginUserBodyType
 >;
 
 export function useLogin(options?: AuthLoginMutationOptions) {
@@ -19,12 +17,9 @@ export function useLogin(options?: AuthLoginMutationOptions) {
   return useMutation({
     ...options,
     mutationFn: async (data) => {
-      const json = await api.post<AuthTypes.LoginUserSuccessfullyResponseType>(
-        "/auth/login",
-        {
-          body: JSON.stringify(data),
-        },
-      );
+      const json = await api.post<LoginUserResponse>("/auth/login", {
+        body: JSON.stringify(data),
+      });
 
       return json.user;
     },
