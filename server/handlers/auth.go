@@ -10,9 +10,10 @@ import (
 )
 
 type RegisterUserRequest struct {
-	Username string `json:"username" validate:"required,max=24,min=2"`
-	Password string `json:"password" validate:"required,max=24,min=8"`
-	Email    string `json:"email" validate:"required,email"`
+	Username        string `json:"username" validate:"required,max=24,min=2"`
+	Password        string `json:"password" validate:"required,max=24,min=8"`
+	ConfirmPassword string `json:"confirmPassword" validate:"required,max=24,min=8"`
+	Email           string `json:"email" validate:"required,email"`
 }
 
 type LoginUserRequest struct {
@@ -45,6 +46,10 @@ func (h *RegisterUserHandler) Handle(w http.ResponseWriter, r *http.Request) err
 
 	if err := h.validator.Struct(body); err != nil {
 		return &utils.ApiError{Code: http.StatusBadRequest, Message: "Invalid request body", Cause: err}
+	}
+
+	if body.Password != body.ConfirmPassword {
+		return &utils.ApiError{Code: http.StatusBadRequest, Message: "Passwords do not match", Cause: nil}
 	}
 
 	existingUser, err := h.userService.FindUserByEmail(body.Email)
