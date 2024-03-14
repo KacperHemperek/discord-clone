@@ -1,12 +1,8 @@
 import { ClientError } from "../utils/clientError";
+import { ErrorResponse } from "@app/api";
 
 type RequestOptions = Omit<RequestInit, "method">;
 type GetRequestOptions = Omit<RequestOptions, "body">;
-
-type ApiErrorResponse = {
-  message: string;
-  code: number;
-};
 
 export class api {
   /**
@@ -103,7 +99,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (!res.ok) {
-    const error: ApiErrorResponse = await res.json();
+    const error: ErrorResponse = await res.json();
 
     throw new ClientError(error.message, error.code);
   }
