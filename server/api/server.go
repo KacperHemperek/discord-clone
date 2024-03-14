@@ -92,7 +92,7 @@ func (s *Server) Start() {
 	createNotificationHandler := handlers.NewCreateNotificationHandler(
 		&handlers.NewCreateNotificationParams{
 			WsNotificationService: notificationsWsService,
-			V:                     v,
+			Validate:              v,
 		})
 
 	router.HandleFunc(

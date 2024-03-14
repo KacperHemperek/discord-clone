@@ -73,7 +73,7 @@ type NewSubscribeNotificationsParams struct {
 
 type NewCreateNotificationParams struct {
 	WsNotificationService *ws.NotificationService
-	V                     *validator.Validate
+	Validate              *validator.Validate
 }
 
 func NewSubscribeNotificationsHandler(params *NewSubscribeNotificationsParams) *SubscribeNotificationsHandler {
@@ -85,6 +85,6 @@ func NewSubscribeNotificationsHandler(params *NewSubscribeNotificationsParams) *
 func NewCreateNotificationHandler(params *NewCreateNotificationParams) *CreateNotificationHandler {
 	return &CreateNotificationHandler{
 		wsNotificationService: params.WsNotificationService,
-		validate:              params.V,
+		validate:              params.Validate,
 	}
 }
