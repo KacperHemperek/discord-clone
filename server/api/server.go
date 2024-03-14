@@ -29,8 +29,10 @@ func (s *Server) Start() {
 
 	v := validator.New()
 
-	// register all services
+	// register all store services
 	userService := store.NewUserService(db)
+
+	// register all ws services
 	notificationsWsService := ws.NewNotificationService()
 
 	// register all middlewares
@@ -75,6 +77,18 @@ func (s *Server) Start() {
 	router.HandleFunc(
 		"/auth/logout",
 		utils.HandlerFunc(logoutHandler.Handle),
+	).Methods(http.MethodPost)
+
+	sendFriendRequestHandler := handlers.NewSendFriendRequestHandler(&handlers.NewSendFriendRequestProps{
+		Validate:    v,
+		UserService: userService,
+	})
+
+	router.HandleFunc(
+		"/friends",
+		utils.HandlerFunc(
+			authMiddleware.Use(sendFriendRequestHandler.Handle),
+		),
 	).Methods(http.MethodPost)
 
 	subscribeNotificationsHandler := handlers.NewSubscribeNotificationsHandler(

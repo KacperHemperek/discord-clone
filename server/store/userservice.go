@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/kacperhemperek/discord-go/models"
 )
 
@@ -20,7 +21,12 @@ func (s *UserService) FindUserByEmail(email string) (*models.User, error) {
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer func() {
+		err := rows.Close()
+		if err != nil {
+			fmt.Println("ERROR userservice: ", err)
+		}
+	}()
 
 	for rows.Next() {
 		user, err := ScanUser(rows)
@@ -52,7 +58,12 @@ func (s *UserService) CreateUser(username, password, email string) (*models.User
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer func() {
+		err := rows.Close()
+		if err != nil {
+			fmt.Println("ERROR userservice: ", err)
+		}
+	}()
 
 	for rows.Next() {
 		user, err := ScanUser(rows)
@@ -65,6 +76,18 @@ func (s *UserService) CreateUser(username, password, email string) (*models.User
 	}
 
 	return nil, UserUnknownError
+}
+
+func (s *UserService) SendFriendRequest(inviterId, friendId int) error {
+	_, err := s.db.Query(
+		"INSERT INTO friendships (inviter_id, friend_id) VALUES ($1, $2)",
+		inviterId, friendId)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func ScanUser(rows *sql.Rows) (*models.User, error) {
@@ -80,8 +103,6 @@ func ScanUser(rows *sql.Rows) (*models.User, error) {
 }
 
 var UserNotFoundError = errors.New("user not found")
-
-var UserExistsError = errors.New("user already exists")
 
 var UserUnknownError = errors.New("unknown error")
 
