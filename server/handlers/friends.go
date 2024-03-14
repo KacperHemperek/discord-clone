@@ -17,6 +17,10 @@ type SendFriendRequestHandler struct {
 	userService *store.UserService
 }
 
+type GetFriendRequestsHandler struct {
+	userService *store.UserService
+}
+
 func (h *SendFriendRequestHandler) Handle(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
 	body := &SendFriendRequestBody{}
 
@@ -48,14 +52,34 @@ func (h *SendFriendRequestHandler) Handle(w http.ResponseWriter, r *http.Request
 	return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request sent"})
 }
 
+func (h *GetFriendRequestsHandler) Handle(w http.ResponseWriter, _ *http.Request, user *utils.JWTUser) error {
+	friendRequests, err := h.userService.GetFriendRequests(user.ID)
+
+	if err != nil {
+		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when getting friend requests", Cause: err}
+	}
+
+	return utils.WriteJson(w, http.StatusOK, &utils.JSON{"requests": friendRequests})
+}
+
 type NewSendFriendRequestProps struct {
 	Validate    *validator.Validate
+	UserService *store.UserService
+}
+
+type NewGetFriendRequestsProps struct {
 	UserService *store.UserService
 }
 
 func NewSendFriendRequestHandler(props *NewSendFriendRequestProps) *SendFriendRequestHandler {
 	return &SendFriendRequestHandler{
 		validate:    props.Validate,
+		userService: props.UserService,
+	}
+}
+
+func NewGetFriendRequestsHandler(props *NewGetFriendRequestsProps) *GetFriendRequestsHandler {
+	return &GetFriendRequestsHandler{
 		userService: props.UserService,
 	}
 }

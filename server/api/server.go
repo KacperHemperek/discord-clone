@@ -91,6 +91,17 @@ func (s *Server) Start() {
 		),
 	).Methods(http.MethodPost)
 
+	getFriendRequestsHandler := handlers.NewGetFriendRequestsHandler(&handlers.NewGetFriendRequestsProps{
+		UserService: userService,
+	})
+
+	router.HandleFunc(
+		"/friends/requests",
+		utils.HandlerFunc(
+			authMiddleware.Use(getFriendRequestsHandler.Handle),
+		),
+	).Methods(http.MethodGet)
+
 	subscribeNotificationsHandler := handlers.NewSubscribeNotificationsHandler(
 		&handlers.NewSubscribeNotificationsParams{
 			WsNotificationService: notificationsWsService,
