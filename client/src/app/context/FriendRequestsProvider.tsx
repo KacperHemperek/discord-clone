@@ -1,9 +1,9 @@
-import { FriendRequestType } from '../types/friends';
-import React from 'react';
-import { getWebsocketConnection } from '../utils/websocket';
-import { z } from 'zod';
-import { useMatch } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { FriendRequestType } from "../types/friends";
+import React from "react";
+import { getWebsocketConnection } from "../utils/websocket";
+import { z } from "zod";
+import { useMatch } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 const inviteItemSchema = z.object({
   id: z.string(),
@@ -26,19 +26,19 @@ type FriendInvite = z.infer<typeof inviteItemSchema>;
 
 function useFriendRequestsValue() {
   const queryClient = useQueryClient();
-  const match = useMatch('/home/friends/requests');
+  const match = useMatch("/home/friends/requests");
 
   const [requests, setRequests] = React.useState<FriendInvite[]>([]);
 
   const friendInviteWs = React.useRef<WebSocket | null>(null);
 
   React.useEffect(() => {
-    const ws = getWebsocketConnection('/friends/invites');
+    const ws = getWebsocketConnection("/friends/invites");
     if (!ws) return;
 
     friendInviteWs.current = ws;
 
-    friendInviteWs.current.addEventListener('message', handleWebsocketMessage);
+    friendInviteWs.current.addEventListener("message", handleWebsocketMessage);
 
     return () => {
       friendInviteWs.current?.close();
@@ -61,7 +61,7 @@ function useFriendRequestsValue() {
 
       if (parsedData.success) {
         if (match) {
-          queryClient.refetchQueries({ queryKey: ['seen-all'] });
+          queryClient.refetchQueries({ queryKey: ["seen-all"] });
         }
 
         setRequests((notifications) => [
@@ -107,7 +107,7 @@ export function useFriendRequests() {
 
   if (!context) {
     throw new Error(
-      'useFriendRequests must be used within a FriendRequestsProvider',
+      "useFriendRequests must be used within a FriendRequestsProvider",
     );
   }
 

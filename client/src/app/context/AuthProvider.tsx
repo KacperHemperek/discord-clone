@@ -1,7 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../api";
-import { AuthTypes } from "@discord-clone-v2/types";
+import { api, QueryKeys, GetLoggedInUserResponse } from "@app/api";
 
 export function useUserQuery() {
   const {
@@ -9,11 +8,9 @@ export function useUserQuery() {
     isLoading: isLoadingUser,
     error: userError,
   } = useQuery({
-    queryKey: ["user"],
+    queryKey: QueryKeys.getLoggedInUser(),
     queryFn: async () => {
-      const { user } =
-        await api.get<AuthTypes.GetLoggedInUserResponseType>("/auth/me");
-
+      const { user } = await api.get<GetLoggedInUserResponse>("/auth/me");
       return user;
     },
     retry: false,

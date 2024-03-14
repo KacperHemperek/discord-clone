@@ -1,10 +1,9 @@
 import React from "react";
 import { Check, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { api } from "../../api";
+import { api } from "@app/api";
 import { useFriendRequests } from "../../context/FriendRequestsProvider";
 import FriendListItemButton from "./FriendItemButton";
-import { CommonResponsesTypes } from "@discord-clone-v2/types";
 
 export default function FriendRequestItem({
   id,
@@ -12,9 +11,9 @@ export default function FriendRequestItem({
   username,
   avatar,
 }: {
-  id: string;
+  id: number;
   username: string;
-  userId: string;
+  userId: number;
   avatar?: string;
 }) {
   const { removeRequest } = useFriendRequests();

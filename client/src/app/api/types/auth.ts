@@ -1,11 +1,4 @@
-export type UserResponse = {
-  id: number;
-  username: string;
-  email: string;
-  active: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
+import { UserResponse } from "@app/api";
 
 export type LoginUserBodyType = {
   email: string;
@@ -26,5 +19,9 @@ export type RegisterUserBodyType = {
 
 export type RegisterUserResponseType = {
   message: string;
+  user: UserResponse;
+};
+
+export type GetLoggedInUserResponse = {
   user: UserResponse;
 };
