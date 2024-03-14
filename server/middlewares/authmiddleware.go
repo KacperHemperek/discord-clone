@@ -73,7 +73,7 @@ func createNewAccessTokenAndRefreshToken(r *http.Request) (user *utils.JWTUser, 
 		return nil, "", "", fmt.Errorf("error when parsing refresh token")
 	}
 
-	accessToken, err = utils.NewAccessToken(&utils.NewAccessTokenProps{
+	accessToken, err = utils.NewAccessToken(&utils.NewTokenProps{
 		ID:        user.ID,
 		Email:     user.Email,
 		Username:  user.Username,

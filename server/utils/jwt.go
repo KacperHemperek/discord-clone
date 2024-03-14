@@ -17,8 +17,8 @@ type JWTUser struct {
 	ID        int    `json:"id"`
 	Username  string `json:"username"`
 	Email     string `json:"email"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
 	jwt.RegisteredClaims
 }
 
@@ -53,7 +53,7 @@ func SetAuthTokens(w http.ResponseWriter, accessToken string, refreshToken strin
 	http.SetCookie(w, refreshCookie)
 }
 
-type NewAccessTokenProps struct {
+type NewTokenProps struct {
 	ID        int
 	Email     string
 	Username  string
@@ -61,7 +61,7 @@ type NewAccessTokenProps struct {
 	UpdatedAt string
 }
 
-func NewAccessToken(u *NewAccessTokenProps) (string, error) {
+func NewAccessToken(u *NewTokenProps) (string, error) {
 	user := &JWTUser{
 		ID:        u.ID,
 		Username:  u.Username,
@@ -83,11 +83,13 @@ func NewAccessToken(u *NewAccessTokenProps) (string, error) {
 	return token.SignedString([]byte(secret))
 }
 
-func NewRefreshToken(id int, username, email string) (string, error) {
+func NewRefreshToken(u *NewTokenProps) (string, error) {
 	user := &JWTUser{
-		ID:       id,
-		Username: username,
-		Email:    email,
+		ID:        u.ID,
+		Username:  u.Username,
+		Email:     u.Email,
+		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: getRefreshTokenExpiryDate(),
 		},
@@ -111,28 +113,18 @@ func ParseUserToken(tokenString string) (*JWTUser, error) {
 		return nil, err
 	}
 
-	user := &JWTUser{}
-
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		id, ok := claims["id"]
-		if !ok {
-			return nil, fmt.Errorf("id not found in token")
-		}
-		username, ok := claims["username"]
-		if !ok {
-			return nil, fmt.Errorf("username not found in token")
-		}
-		email, ok := claims["email"]
-		if !ok {
-			return nil, fmt.Errorf("email not found in token")
-		}
+		user := &JWTUser{}
+		user.ID = int(claims["id"].(float64))
+		user.Username = claims["username"].(string)
+		user.Email = claims["email"].(string)
+		user.CreatedAt = claims["createdAt"].(string)
+		user.UpdatedAt = claims["updatedAt"].(string)
 
-		user.ID = int(id.(float64))
-		user.Username = username.(string)
-		user.Email = email.(string)
+		return user, nil
 	}
 
-	return user, nil
+	return nil, fmt.Errorf("invalid token")
 }
 
 func parseFunc(token *jwt.Token) (interface{}, error) {

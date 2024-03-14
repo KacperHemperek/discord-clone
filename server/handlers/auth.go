@@ -77,7 +77,7 @@ func (h *RegisterUserHandler) Handle(w http.ResponseWriter, r *http.Request) err
 		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when creating user", Cause: err}
 	}
 
-	accessToken, accessTokenError := utils.NewAccessToken(&utils.NewAccessTokenProps{
+	accessToken, accessTokenError := utils.NewAccessToken(&utils.NewTokenProps{
 		ID:        user.ID,
 		Email:     user.Email,
 		Username:  user.Username,
@@ -87,7 +87,13 @@ func (h *RegisterUserHandler) Handle(w http.ResponseWriter, r *http.Request) err
 	if accessTokenError != nil {
 		return accessTokenError
 	}
-	refreshToken, refreshTokenError := utils.NewRefreshToken(user.ID, user.Username, user.Email)
+	refreshToken, refreshTokenError := utils.NewRefreshToken(&utils.NewTokenProps{
+		ID:        user.ID,
+		Email:     user.Email,
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	})
 	if refreshTokenError != nil {
 		return refreshTokenError
 	}
@@ -135,7 +141,7 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return InvalidUserOrPasswordApiError
 	}
 
-	accessToken, err := utils.NewAccessToken(&utils.NewAccessTokenProps{
+	accessToken, err := utils.NewAccessToken(&utils.NewTokenProps{
 		ID:        user.ID,
 		Email:     user.Email,
 		Username:  user.Username,
@@ -147,7 +153,13 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	refreshToken, err := utils.NewRefreshToken(user.ID, user.Username, user.Email)
+	refreshToken, err := utils.NewRefreshToken(&utils.NewTokenProps{
+		ID:        user.ID,
+		Email:     user.Email,
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	})
 
 	if err != nil {
 		return err
