@@ -8,6 +8,7 @@ import (
 	"github.com/kacperhemperek/discord-go/middlewares"
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
+	"github.com/kacperhemperek/discord-go/ws"
 	"github.com/rs/cors"
 	"log"
 	"net/http"
@@ -30,7 +31,7 @@ func (s *Server) Start() {
 
 	// register all services
 	userService := store.NewUserService(db)
-	notificationsWsService := handlers.NewWsNotificationService()
+	notificationsWsService := ws.NewNotificationService()
 
 	// register all middlewares
 	authMiddleware := middlewares.NewAuthMiddleware()
@@ -78,7 +79,7 @@ func (s *Server) Start() {
 
 	subscribeNotificationsHandler := handlers.NewSubscribeNotificationsHandler(
 		&handlers.NewSubscribeNotificationsParams{
-			NS: notificationsWsService,
+			WsNotificationService: notificationsWsService,
 		})
 
 	router.HandleFunc(
@@ -90,8 +91,8 @@ func (s *Server) Start() {
 
 	createNotificationHandler := handlers.NewCreateNotificationHandler(
 		&handlers.NewCreateNotificationParams{
-			NS: notificationsWsService,
-			V:  v,
+			WsNotificationService: notificationsWsService,
+			V:                     v,
 		})
 
 	router.HandleFunc(

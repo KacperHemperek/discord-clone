@@ -5,15 +5,16 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/websocket"
 	"github.com/kacperhemperek/discord-go/utils"
+	"github.com/kacperhemperek/discord-go/ws"
 	"net/http"
 )
 
 type SubscribeNotificationsHandler struct {
-	wsNotificationService *WsNotificationService
+	wsNotificationService *ws.NotificationService
 }
 
 type CreateNotificationHandler struct {
-	wsNotificationService *WsNotificationService
+	wsNotificationService *ws.NotificationService
 	validate              *validator.Validate
 }
 
@@ -67,50 +68,23 @@ type CreateNotificationBody struct {
 }
 
 type NewSubscribeNotificationsParams struct {
-	NS *WsNotificationService
+	WsNotificationService *ws.NotificationService
 }
 
 type NewCreateNotificationParams struct {
-	NS *WsNotificationService
-	V  *validator.Validate
+	WsNotificationService *ws.NotificationService
+	V                     *validator.Validate
 }
 
 func NewSubscribeNotificationsHandler(params *NewSubscribeNotificationsParams) *SubscribeNotificationsHandler {
 	return &SubscribeNotificationsHandler{
-		wsNotificationService: params.NS,
+		wsNotificationService: params.WsNotificationService,
 	}
 }
 
 func NewCreateNotificationHandler(params *NewCreateNotificationParams) *CreateNotificationHandler {
 	return &CreateNotificationHandler{
-		wsNotificationService: params.NS,
+		wsNotificationService: params.WsNotificationService,
 		validate:              params.V,
-	}
-}
-
-type WsNotificationService struct {
-	conns map[int]*websocket.Conn
-}
-
-func (s *WsNotificationService) AddConn(userId int, conn *websocket.Conn) {
-	s.conns[userId] = conn
-}
-
-func (s *WsNotificationService) RemoveConn(userId int) {
-	delete(s.conns, userId)
-}
-
-func (s *WsNotificationService) Notify(userId int, msg string) error {
-	conn, ok := s.conns[userId]
-	if !ok {
-		return fmt.Errorf("no connection for user %d", userId)
-	}
-
-	return conn.WriteMessage(websocket.TextMessage, []byte(msg))
-}
-
-func NewWsNotificationService() *WsNotificationService {
-	return &WsNotificationService{
-		conns: make(map[int]*websocket.Conn),
 	}
 }
