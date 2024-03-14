@@ -3,11 +3,10 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CommonResponsesTypes } from "@discord-clone-v2/types";
-import { cn } from "../../utils/cn";
-import { Container } from "../../components/friends/FriendPageContainer";
-import { api } from "../../api";
-import { ClientError } from "../../utils/clientError";
+import { cn } from "@app/utils/cn";
+import { ClientError } from "@app/utils/clientError";
+import { api, SuccessMessageResponse } from "@app/api";
+import { Container } from "@app/components/friends/FriendPageContainer";
 
 const InviteFormSchema = z.object({
   email: z.string().email("Enter a valid email address to invite user"),
@@ -29,12 +28,9 @@ export default function InviteUserPage() {
   const { mutate: sendFriendRequestMutation } = useMutation({
     mutationKey: ["invite-friend"],
     mutationFn: async (data: InviteFormValues) =>
-      await api.post<CommonResponsesTypes.MessageSuccessResponseType>(
-        "/friends/invites",
-        {
-          body: JSON.stringify(data),
-        },
-      ),
+      await api.post<SuccessMessageResponse>("/friends", {
+        body: JSON.stringify(data),
+      }),
     onError: (err) => {
       if (err instanceof ClientError) {
         form.setError("email", {
@@ -50,6 +46,7 @@ export default function InviteUserPage() {
     },
     onSuccess: () => {
       setShowSuccess(true);
+      form.clearErrors("email");
       form.reset();
     },
   });
@@ -78,6 +75,10 @@ export default function InviteUserPage() {
           type="text"
           placeholder="Enter users email address"
           {...form.register("email")}
+          onChange={(e) => {
+            form.setValue("email", e.target.value);
+            setShowSuccess(false);
+          }}
         />
         <button
           className="px-3 py-1.5 text-sm rounded-sm bg-dc-purple-500 font-semibold"
