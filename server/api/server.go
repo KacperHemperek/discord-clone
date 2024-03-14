@@ -30,6 +30,7 @@ func (s *Server) Start() {
 
 	// register all services
 	userService := store.NewUserService(db)
+	notificationsWsService := handlers.NewWsNotificationService()
 
 	// register all middlewares
 	authMiddleware := middlewares.NewAuthMiddleware(&middlewares.AuthMiddlewareParams{UserService: userService})
@@ -73,6 +74,31 @@ func (s *Server) Start() {
 	router.HandleFunc(
 		"/auth/logout",
 		utils.HandlerFunc(logoutHandler.Handle),
+	).Methods(http.MethodPost)
+
+	subscribeNotificationsHandler := handlers.NewSubscribeNotificationsHandler(
+		&handlers.NewSubscribeNotificationsParams{
+			NS: notificationsWsService,
+		})
+
+	router.HandleFunc(
+		"/notifications",
+		utils.HandlerFunc(
+			authMiddleware.Use(subscribeNotificationsHandler.Handle),
+		),
+	).Methods(http.MethodGet)
+
+	createNotificationHandler := handlers.NewCreateNotificationHandler(
+		&handlers.NewCreateNotificationParams{
+			NS: notificationsWsService,
+			V:  v,
+		})
+
+	router.HandleFunc(
+		"/notifications",
+		utils.HandlerFunc(
+			authMiddleware.Use(createNotificationHandler.Handle),
+		),
 	).Methods(http.MethodPost)
 
 	portStr := fmt.Sprintf(":%d", s.port)
