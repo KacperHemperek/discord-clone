@@ -115,11 +115,21 @@ func ParseUserToken(tokenString string) (*JWTUser, error) {
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		user := &JWTUser{}
-		user.ID = int(claims["id"].(float64))
-		user.Username = claims["username"].(string)
-		user.Email = claims["email"].(string)
-		user.CreatedAt = claims["createdAt"].(string)
-		user.UpdatedAt = claims["updatedAt"].(string)
+		if id, ok := claims["id"]; ok {
+			user.ID = int(id.(float64))
+		}
+		if username, ok := claims["username"]; ok {
+			user.Username = username.(string)
+		}
+		if email, ok := claims["email"]; ok {
+			user.Email = email.(string)
+		}
+		if createdAt, ok := claims["createdAt"]; ok {
+			user.CreatedAt = createdAt.(string)
+		}
+		if updatedAt, ok := claims["updatedAt"]; ok {
+			user.UpdatedAt = updatedAt.(string)
+		}
 
 		return user, nil
 	}
