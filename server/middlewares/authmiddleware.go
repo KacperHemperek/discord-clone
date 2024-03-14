@@ -4,15 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/kacperhemperek/discord-go/models"
-	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
 	"net/http"
 )
 
-type AuthMiddleware struct {
-	userService *store.UserService
-}
+type AuthMiddleware struct{}
 
 var unauthorizedApiError = &utils.ApiError{
 	Code:    http.StatusUnauthorized,
@@ -26,15 +22,13 @@ func (m *AuthMiddleware) Use(h HandlerWithUser) utils.Handler {
 			if !errors.Is(err, http.ErrNoCookie) {
 				return unauthorizedApiError
 			}
-			refreshTokenUser, accessToken, newRefreshToken, err := createNewAccessTokenAndRefreshToken(r)
+			user, accessToken, newRefreshToken, err := createNewAccessTokenAndRefreshToken(r)
 
 			if err != nil {
 				return unauthorizedApiError
 			}
 
 			utils.SetAuthTokens(w, accessToken, newRefreshToken)
-
-			user, err := m.userService.FindUserByEmail(refreshTokenUser.Email)
 
 			if err != nil {
 				return unauthorizedApiError
@@ -60,12 +54,10 @@ func (m *AuthMiddleware) Use(h HandlerWithUser) utils.Handler {
 			accessTokenUser = refreshTokenUser
 		}
 
-		userFromDb, err := m.userService.FindUserByEmail(accessTokenUser.Email)
-
 		if err != nil {
 			return unauthorizedApiError
 		}
-		return h(w, r, userFromDb)
+		return h(w, r, accessTokenUser)
 	}
 }
 
@@ -81,13 +73,17 @@ func createNewAccessTokenAndRefreshToken(r *http.Request) (user *utils.JWTUser, 
 		return nil, "", "", fmt.Errorf("error when parsing refresh token")
 	}
 
-	accessToken, err = utils.NewAccessToken(user.UserID, user.Username, user.Email)
+	accessToken, err = utils.NewAccessToken(&utils.NewAccessTokenProps{
+		ID:        user.ID,
+		Email:     user.Email,
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	})
 
 	if err != nil {
 		return nil, "", "", fmt.Errorf("error when creating new access token")
 	}
-
-	refreshToken, err = utils.NewRefreshToken(user.UserID, user.Username, user.Email)
 
 	if err != nil {
 		return nil, "", "", fmt.Errorf("error when creating new refresh token")
@@ -96,14 +92,8 @@ func createNewAccessTokenAndRefreshToken(r *http.Request) (user *utils.JWTUser, 
 	return user, accessToken, refreshToken, nil
 }
 
-type AuthMiddlewareParams struct {
-	UserService *store.UserService
+func NewAuthMiddleware() *AuthMiddleware {
+	return &AuthMiddleware{}
 }
 
-func NewAuthMiddleware(params *AuthMiddlewareParams) *AuthMiddleware {
-	return &AuthMiddleware{
-		userService: params.UserService,
-	}
-}
-
-type HandlerWithUser = func(w http.ResponseWriter, r *http.Request, user *models.User) error
+type HandlerWithUser = func(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error

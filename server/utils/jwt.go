@@ -14,9 +14,11 @@ var (
 )
 
 type JWTUser struct {
-	UserID   int    `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
+	ID        int    `json:"id"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 	jwt.RegisteredClaims
 }
 
@@ -51,11 +53,21 @@ func SetAuthTokens(w http.ResponseWriter, accessToken string, refreshToken strin
 	http.SetCookie(w, refreshCookie)
 }
 
-func NewAccessToken(id int, username, email string) (string, error) {
+type NewAccessTokenProps struct {
+	ID        int
+	Email     string
+	Username  string
+	CreatedAt string
+	UpdatedAt string
+}
+
+func NewAccessToken(u *NewAccessTokenProps) (string, error) {
 	user := &JWTUser{
-		UserID:   id,
-		Username: username,
-		Email:    email,
+		ID:        u.ID,
+		Username:  u.Username,
+		Email:     u.Email,
+		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: getAccessTokenExpiryDate(),
 		},
@@ -73,7 +85,7 @@ func NewAccessToken(id int, username, email string) (string, error) {
 
 func NewRefreshToken(id int, username, email string) (string, error) {
 	user := &JWTUser{
-		UserID:   id,
+		ID:       id,
 		Username: username,
 		Email:    email,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -115,7 +127,7 @@ func ParseUserToken(tokenString string) (*JWTUser, error) {
 			return nil, fmt.Errorf("email not found in token")
 		}
 
-		user.UserID = int(id.(float64))
+		user.ID = int(id.(float64))
 		user.Username = username.(string)
 		user.Email = email.(string)
 	}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/websocket"
-	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/utils"
 	"net/http"
 )
@@ -18,7 +17,7 @@ type CreateNotificationHandler struct {
 	validate              *validator.Validate
 }
 
-func (h *SubscribeNotificationsHandler) Handle(w http.ResponseWriter, r *http.Request, user *models.User) error {
+func (h *SubscribeNotificationsHandler) Handle(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -48,7 +47,7 @@ func (h *SubscribeNotificationsHandler) Handle(w http.ResponseWriter, r *http.Re
 
 }
 
-func (h *CreateNotificationHandler) Handle(w http.ResponseWriter, r *http.Request, user *models.User) error {
+func (h *CreateNotificationHandler) Handle(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
 	body := &CreateNotificationBody{}
 	if err := utils.ReadBody(r, body); err != nil {
 		return err

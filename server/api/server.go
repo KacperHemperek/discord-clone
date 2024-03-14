@@ -33,7 +33,7 @@ func (s *Server) Start() {
 	notificationsWsService := handlers.NewWsNotificationService()
 
 	// register all middlewares
-	authMiddleware := middlewares.NewAuthMiddleware(&middlewares.AuthMiddlewareParams{UserService: userService})
+	authMiddleware := middlewares.NewAuthMiddleware()
 
 	router.HandleFunc("/healthcheck", utils.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 		return utils.WriteJson(w, http.StatusOK, utils.JSON{"status": "ok"})

@@ -3,7 +3,6 @@ package handlers
 import (
 	"errors"
 	"github.com/go-playground/validator/v10"
-	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
 	"net/http"
@@ -78,7 +77,13 @@ func (h *RegisterUserHandler) Handle(w http.ResponseWriter, r *http.Request) err
 		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when creating user", Cause: err}
 	}
 
-	accessToken, accessTokenError := utils.NewAccessToken(user.ID, user.Username, user.Email)
+	accessToken, accessTokenError := utils.NewAccessToken(&utils.NewAccessTokenProps{
+		ID:        user.ID,
+		Email:     user.Email,
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	})
 	if accessTokenError != nil {
 		return accessTokenError
 	}
@@ -130,7 +135,13 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return InvalidUserOrPasswordApiError
 	}
 
-	accessToken, err := utils.NewAccessToken(user.ID, user.Username, user.Email)
+	accessToken, err := utils.NewAccessToken(&utils.NewAccessTokenProps{
+		ID:        user.ID,
+		Email:     user.Email,
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	})
 
 	if err != nil {
 		return err
@@ -154,7 +165,7 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	)
 }
 
-func (h *GetLoggedInUserHandler) Handle(w http.ResponseWriter, _ *http.Request, user *models.User) error {
+func (h *GetLoggedInUserHandler) Handle(w http.ResponseWriter, _ *http.Request, user *utils.JWTUser) error {
 	return utils.WriteJson(w, http.StatusOK, &utils.JSON{"user": user})
 }
 
