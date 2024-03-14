@@ -148,7 +148,7 @@ func getJWTSecret() (string, error) {
 }
 
 func getAccessTokenExpiryDate() *jwt.NumericDate {
-	return jwt.NewNumericDate(time.Now().Add(time.Second * 10))
+	return jwt.NewNumericDate(time.Now().Add(time.Minute * 30))
 }
 
 func getRefreshTokenExpiryDate() *jwt.NumericDate {
