@@ -14,11 +14,11 @@ var (
 )
 
 type JWTUser struct {
-	ID        int    `json:"id"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
+	ID        int       `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 	jwt.RegisteredClaims
 }
 
@@ -57,8 +57,8 @@ type NewTokenProps struct {
 	ID        int
 	Email     string
 	Username  string
-	CreatedAt string
-	UpdatedAt string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func NewAccessToken(u *NewTokenProps) (string, error) {
@@ -125,16 +125,39 @@ func ParseUserToken(tokenString string) (*JWTUser, error) {
 			user.Email = email.(string)
 		}
 		if createdAt, ok := claims["createdAt"]; ok {
-			user.CreatedAt = createdAt.(string)
+			date, err := formatAnyToTime(createdAt)
+			if err != nil {
+				return nil, err
+			}
+			user.CreatedAt = date
 		}
 		if updatedAt, ok := claims["updatedAt"]; ok {
-			user.UpdatedAt = updatedAt.(string)
+			date, err := formatAnyToTime(updatedAt)
+			if err != nil {
+				return nil, err
+			}
+			user.UpdatedAt = date
 		}
 
 		return user, nil
 	}
 
 	return nil, fmt.Errorf("invalid token")
+}
+
+func formatAnyToTime(t any) (time.Time, error) {
+	switch t.(type) {
+	case string:
+		date, err := time.Parse(time.RFC3339, t.(string))
+		if err != nil {
+			return time.Time{}, err
+		}
+		return date, nil
+	case time.Time:
+		return t.(time.Time), nil
+	default:
+		return time.Time{}, fmt.Errorf("invalid createdAt type")
+	}
 }
 
 func parseFunc(token *jwt.Token) (interface{}, error) {
