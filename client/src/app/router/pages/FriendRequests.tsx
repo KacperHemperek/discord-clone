@@ -1,36 +1,18 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
 import FriendRequestItem from "@app/components/friends/FriendRequestItem";
-import { useFriendRequests } from "@app/context/FriendRequestsProvider";
-import { api, SuccessMessageResponse } from "@app/api";
 import { Container } from "@app/components/friends/FriendPageContainer";
 import DCSearchBar from "@app/components/SearchBar";
 import { usePendingFriendRequests } from "@app/hooks/reactQuery/usePendingFriendRequests.ts";
 import { LoadingSpinner } from "@app/components/LoadingSpinner.tsx";
 
 export default function FriendRequestsPage() {
-  const { markAllAsSeen, hasNewRequests } = useFriendRequests();
-
   const { data: requests, isLoading, error } = usePendingFriendRequests();
-
-  useQuery({
-    enabled: hasNewRequests,
-    queryKey: ["seen-all"],
-    queryFn: async () => {
-      const data = await api.put<SuccessMessageResponse>(
-        "/friends/invites/seen",
-      );
-
-      markAllAsSeen();
-      return data;
-    },
-  });
 
   const [search, setSearch] = React.useState("");
 
   const filteredRequests =
     requests?.filter((request) =>
-      request.username.toLowerCase().includes(search.toLowerCase()),
+      request.user.username.toLowerCase().includes(search.toLowerCase()),
     ) ?? [];
 
   if (error) {
@@ -71,8 +53,8 @@ export default function FriendRequestsPage() {
         {filteredRequests.map((request) => (
           <FriendRequestItem
             id={request.id}
-            userId={request.id}
-            username={request.username}
+            userId={request.user.id}
+            username={request.user.username}
             key={request.id}
           />
         ))}
