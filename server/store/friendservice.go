@@ -59,10 +59,10 @@ func (s *FriendshipService) GetUsersFriendRequests(userId int) ([]*models.Friend
 	return users, nil
 }
 
-func (s *FriendshipService) GetFriendshipByUsers(userId, friendId int) (*models.Friendship, error) {
+func (s *FriendshipService) GetFriendshipByUsers(userOneID, userTwoID int) (*models.Friendship, error) {
 	row := s.db.QueryRow(
-		"SELECT id, inviter_id, friend_id, status FROM friendships WHERE (inviter_id = $1 AND friend_id = $2) OR (inviter_id = $2 AND friend_id = $1);",
-		userId, friendId,
+		"SELECT id, inviter_id, friend_id, status, seen, requested_at, status_updated_at FROM friendships WHERE (inviter_id = $1 AND friend_id = $2) OR (inviter_id = $2 AND friend_id = $1);",
+		userOneID, userTwoID,
 	)
 
 	friendship, err := scanFriendship(row)
@@ -105,6 +105,32 @@ func (s *FriendshipService) AcceptFriendRequest(requestId int) error {
 func (s *FriendshipService) RejectFriendRequest(requestId int) error {
 	_, err := s.db.Exec(
 		"UPDATE friendships SET status = 'rejected', status_updated_at = CURRENT_TIMESTAMP WHERE id = $1;",
+		requestId,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *FriendshipService) MakeFriendshipPending(requestId int) error {
+	_, err := s.db.Exec(
+		"UPDATE friendships SET status = 'pending', status_updated_at = CURRENT_TIMESTAMP WHERE id = $1;",
+		requestId,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *FriendshipService) DeleteFriendship(requestId int) error {
+	_, err := s.db.Exec(
+		"DELETE FROM friendships WHERE id = $1;",
 		requestId,
 	)
 

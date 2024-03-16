@@ -8,6 +8,7 @@ import (
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
 	"net/http"
+	"time"
 )
 
 func HandleSendFriendRequest(userService *store.UserService, friendshipService *store.FriendshipService, validate *validator.Validate) middlewares.HandlerWithUser {
@@ -15,11 +16,7 @@ func HandleSendFriendRequest(userService *store.UserService, friendshipService *
 	return func(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
 		body := &SendFriendRequestBody{}
 
-		if err := utils.ReadBody(r, body); err != nil {
-			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Invalid request body", Cause: err}
-		}
-
-		if err := validate.Struct(body); err != nil {
+		if err := utils.ReadAndValidateBody(r, body, validate); err != nil {
 			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Invalid request body", Cause: err}
 		}
 
@@ -29,11 +26,58 @@ func HandleSendFriendRequest(userService *store.UserService, friendshipService *
 			if errors.Is(err, store.UserNotFoundError) {
 				return &utils.ApiError{Code: http.StatusNotFound, Message: "User with that email not found", Cause: err}
 			}
-			return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when searching for user", Cause: err}
+			return err
 		}
 
 		if userToSendRequest.ID == user.ID {
 			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Cannot send friend request to yourself", Cause: nil}
+		}
+
+		existingFriendship, err := friendshipService.GetFriendshipByUsers(user.ID, userToSendRequest.ID)
+
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+
+		if existingFriendship != nil && existingFriendship.Status == "rejected" {
+			if existingFriendship.FriendID == user.ID {
+				err := deleteRequestAndSendNewOne(
+					friendshipService,
+					existingFriendship.ID,
+					user.ID,
+					userToSendRequest.ID,
+				)
+				if err != nil {
+					return err
+				}
+				return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request sent"})
+			}
+
+			if !existingFriendship.StatusChangedAt.Valid {
+				return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when sending request", Cause: nil}
+			}
+			now := time.Now()
+			changedAt := existingFriendship.StatusChangedAt.Time
+			timeDiff := now.Sub(changedAt)
+			if timeDiff < time.Hour*24*7 {
+				return &utils.ApiError{Code: http.StatusBadRequest, Message: "Friend request already rejected, a week needs to pass to send another request", Cause: nil}
+			}
+
+			updateFriendshipError := friendshipService.MakeFriendshipPending(existingFriendship.ID)
+
+			if updateFriendshipError != nil {
+				return updateFriendshipError
+			}
+
+			return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request sent"})
+		}
+
+		if existingFriendship != nil && existingFriendship.Status == "accepted" {
+			return &utils.ApiError{Code: http.StatusBadRequest, Message: "You are already friends", Cause: nil}
+		}
+
+		if existingFriendship != nil && existingFriendship.Status == "pending" {
+			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Friend request already sent", Cause: nil}
 		}
 
 		if err := friendshipService.SendFriendRequest(user.ID, userToSendRequest.ID); err != nil {
@@ -122,6 +166,19 @@ func HandleRejectFriendRequest(friendshipService *store.FriendshipService) middl
 		}
 		return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request rejected"})
 	}
+}
+
+func deleteRequestAndSendNewOne(friendshipService *store.FriendshipService, existingFriendshipID, userID, friendID int) error {
+	deleteFriendShipError := friendshipService.DeleteFriendship(existingFriendshipID)
+	if deleteFriendShipError != nil {
+		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when when sending request", Cause: deleteFriendShipError}
+	}
+	createNewFriendshipError := friendshipService.SendFriendRequest(userID, friendID)
+	if createNewFriendshipError != nil {
+		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when when sending request", Cause: deleteFriendShipError}
+	}
+
+	return nil
 }
 
 type SendFriendRequestBody struct {
