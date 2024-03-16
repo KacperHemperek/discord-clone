@@ -1,0 +1,1 @@
+ALTER TABLE friendships RENAME status_updated_at TO accepted_at;
