@@ -10,130 +10,118 @@ import (
 	"net/http"
 )
 
-type sendFriendRequestHandler struct {
-	validate          *validator.Validate
-	userService       *store.UserService
-	friendshipService *store.FriendshipService
-}
-
-type getFriendRequestsHandler struct {
-	friendshipService *store.FriendshipService
-}
-
-type acceptFriendRequestHandler struct {
-	friendshipService *store.FriendshipService
-	validate          *validator.Validate
-}
-
 func HandleSendFriendRequest(userService *store.UserService, friendshipService *store.FriendshipService, validate *validator.Validate) middlewares.HandlerWithUser {
-	handler := &sendFriendRequestHandler{
-		validate:          validate,
-		userService:       userService,
-		friendshipService: friendshipService,
-	}
 
-	return handler.handle
+	return func(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
+		body := &SendFriendRequestBody{}
+
+		if err := utils.ReadBody(r, body); err != nil {
+			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Invalid request body", Cause: err}
+		}
+
+		if err := validate.Struct(body); err != nil {
+			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Invalid request body", Cause: err}
+		}
+
+		userToSendRequest, err := userService.FindUserByEmail(body.Email)
+
+		if err != nil {
+			if errors.Is(err, store.UserNotFoundError) {
+				return &utils.ApiError{Code: http.StatusNotFound, Message: "User with that email not found", Cause: err}
+			}
+			return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when searching for user", Cause: err}
+		}
+
+		if userToSendRequest.ID == user.ID {
+			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Cannot send friend request to yourself", Cause: nil}
+		}
+
+		if err := friendshipService.SendFriendRequest(user.ID, userToSendRequest.ID); err != nil {
+			return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when sending friend request", Cause: err}
+		}
+
+		return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request sent"})
+	}
 }
 
 func HandleGetFriendRequests(friendshipService *store.FriendshipService) middlewares.HandlerWithUser {
-	handler := &getFriendRequestsHandler{
-		friendshipService: friendshipService,
-	}
+	return func(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
+		friendRequests, err := friendshipService.GetUsersFriendRequests(user.ID)
 
-	return handler.handle
-}
-
-func HandleAcceptFriendRequest(friendshipService *store.FriendshipService, validate *validator.Validate) middlewares.HandlerWithUser {
-	handler := &acceptFriendRequestHandler{
-		friendshipService: friendshipService,
-		validate:          validate,
-	}
-
-	return handler.handle
-}
-
-func HandleRedjectFriendRequest(friendshipService store.FriendshipService) utils.Handler {
-	return func(w http.ResponseWriter, r *http.Request) error {
-		return nil
-	}
-}
-
-func (h *acceptFriendRequestHandler) handle(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
-	requestId, err := utils.GetIntParam(r, "requestId")
-	if err != nil {
-		return &utils.ApiError{Code: http.StatusBadRequest, Message: "Invalid request", Cause: err}
-	}
-
-	friendship, err := h.friendshipService.GetFriendshipById(requestId)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return &utils.ApiError{Code: http.StatusNotFound, Message: "Friend request not found", Cause: err}
+		if err != nil {
+			return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when getting friend requests", Cause: err}
 		}
 
-		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when getting friend request", Cause: err}
+		return utils.WriteJson(w, http.StatusOK, &utils.JSON{"requests": friendRequests})
 	}
-
-	if friendship.FriendID != user.ID {
-		return &utils.ApiError{Code: http.StatusForbidden, Message: "You cannot accept this friend request", Cause: nil}
-	}
-
-	if friendship.Status != "pending" {
-		return &utils.ApiError{Code: http.StatusBadRequest, Message: "Friend request already accepted or rejected", Cause: nil}
-	}
-
-	if friendship.InviterID == user.ID {
-		return &utils.ApiError{Code: http.StatusBadRequest, Message: "You cannot accept your own friend request", Cause: nil}
-	}
-
-	err = h.friendshipService.AcceptFriendRequest(requestId)
-
-	if err != nil {
-		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when accepting friend request", Cause: err}
-	}
-
-	return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request accepted"})
 }
 
-func (h *sendFriendRequestHandler) handle(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
-	body := &SendFriendRequestBody{}
-
-	if err := utils.ReadBody(r, body); err != nil {
-		return &utils.ApiError{Code: http.StatusBadRequest, Message: "Invalid request body", Cause: err}
-	}
-
-	if err := h.validate.Struct(body); err != nil {
-		return &utils.ApiError{Code: http.StatusBadRequest, Message: "Invalid request body", Cause: err}
-	}
-
-	userToSendRequest, err := h.userService.FindUserByEmail(body.Email)
-
-	if err != nil {
-		if errors.Is(err, store.UserNotFoundError) {
-			return &utils.ApiError{Code: http.StatusNotFound, Message: "User with that email not found", Cause: err}
+func HandleAcceptFriendRequest(friendshipService *store.FriendshipService) middlewares.HandlerWithUser {
+	return func(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
+		requestId, err := utils.GetIntParam(r, "requestId")
+		if err != nil {
+			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Invalid request", Cause: err}
 		}
-		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when searching for user", Cause: err}
-	}
 
-	if userToSendRequest.ID == user.ID {
-		return &utils.ApiError{Code: http.StatusBadRequest, Message: "Cannot send friend request to yourself", Cause: nil}
-	}
+		friendship, err := friendshipService.GetFriendshipById(requestId)
 
-	if err := h.friendshipService.SendFriendRequest(user.ID, userToSendRequest.ID); err != nil {
-		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when sending friend request", Cause: err}
-	}
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return &utils.ApiError{Code: http.StatusNotFound, Message: "Friend request not found", Cause: err}
+			}
 
-	return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request sent"})
+			return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when getting friend request", Cause: err}
+		}
+
+		if friendship.FriendID != user.ID {
+			return &utils.ApiError{Code: http.StatusForbidden, Message: "You cannot accept this friend request", Cause: nil}
+		}
+
+		if friendship.Status != "pending" {
+			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Friend request already accepted or rejected", Cause: nil}
+		}
+
+		if friendship.InviterID == user.ID {
+			return &utils.ApiError{Code: http.StatusBadRequest, Message: "You cannot accept your own friend request", Cause: nil}
+		}
+
+		err = friendshipService.AcceptFriendRequest(requestId)
+
+		if err != nil {
+			return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when accepting friend request", Cause: err}
+		}
+
+		return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request accepted"})
+	}
 }
 
-func (h *getFriendRequestsHandler) handle(w http.ResponseWriter, _ *http.Request, user *utils.JWTUser) error {
-	friendRequests, err := h.friendshipService.GetUsersFriendRequests(user.ID)
+func HandleRejectFriendRequest(friendshipService *store.FriendshipService) middlewares.HandlerWithUser {
+	return func(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
+		requestId, err := utils.GetIntParam(r, "requestId")
+		if err != nil {
+			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Invalid request", Cause: err}
+		}
+		friendshipToReject, findFriendshipError := friendshipService.GetFriendshipById(requestId)
+		if findFriendshipError != nil {
+			if errors.Is(findFriendshipError, sql.ErrNoRows) {
+				return &utils.ApiError{Code: http.StatusNotFound, Message: "Friend request not found", Cause: findFriendshipError}
+			}
+			return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when getting friend request", Cause: findFriendshipError}
+		}
+		if friendshipToReject.FriendID != user.ID {
+			return &utils.ApiError{Code: http.StatusForbidden, Message: "You cannot reject this friend request", Cause: nil}
+		}
+		if friendshipToReject.Status != "pending" {
+			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Friend request already accepted or rejected", Cause: nil}
+		}
 
-	if err != nil {
-		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when getting friend requests", Cause: err}
+		rejectError := friendshipService.RejectFriendRequest(requestId)
+
+		if rejectError != nil {
+			return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when rejecting friend request", Cause: rejectError}
+		}
+		return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request rejected"})
 	}
-
-	return utils.WriteJson(w, http.StatusOK, &utils.JSON{"requests": friendRequests})
 }
 
 type SendFriendRequestBody struct {

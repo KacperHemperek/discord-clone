@@ -28,7 +28,8 @@ func setupRoutes(
 
 	mux.HandleFunc("/friends", utils.HandlerFunc(authMiddleware.Use(handlers.HandleSendFriendRequest(userService, friendshipService, v)))).Methods(http.MethodPost)
 	mux.HandleFunc("/friends/requests", utils.HandlerFunc(authMiddleware.Use(handlers.HandleGetFriendRequests(friendshipService)))).Methods(http.MethodGet)
-	mux.HandleFunc("/friends/requests/{requestId}/accept", utils.HandlerFunc(authMiddleware.Use(handlers.HandleAcceptFriendRequest(friendshipService, v)))).Methods(http.MethodPost)
+	mux.HandleFunc("/friends/requests/{requestId}/accept", utils.HandlerFunc(authMiddleware.Use(handlers.HandleAcceptFriendRequest(friendshipService)))).Methods(http.MethodPost)
+	mux.HandleFunc("/friends/requests/{requestId}/reject", utils.HandlerFunc(authMiddleware.Use(handlers.HandleRejectFriendRequest(friendshipService)))).Methods(http.MethodPost)
 
 	mux.HandleFunc("/notifications", utils.HandlerFunc(authMiddleware.Use(handlers.HandleSubscribeNotifications(notificationsWsService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/notifications", utils.HandlerFunc(authMiddleware.Use(handlers.HandleCreateNotification(notificationsWsService, v)))).Methods(http.MethodPost)

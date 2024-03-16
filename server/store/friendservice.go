@@ -102,6 +102,19 @@ func (s *FriendshipService) AcceptFriendRequest(requestId int) error {
 	return nil
 }
 
+func (s *FriendshipService) RejectFriendRequest(requestId int) error {
+	_, err := s.db.Exec(
+		"UPDATE friendships SET status = 'rejected', status_updated_at = CURRENT_TIMESTAMP WHERE id = $1;",
+		requestId,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func NewFriendshipService(db *Database) *FriendshipService {
 	return &FriendshipService{db: db}
 }
