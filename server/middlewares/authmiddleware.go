@@ -54,9 +54,6 @@ func (m *AuthMiddleware) Use(h HandlerWithUser) utils.Handler {
 			accessTokenUser = refreshTokenUser
 		}
 
-		if err != nil {
-			return unauthorizedApiError
-		}
 		return h(w, r, accessTokenUser)
 	}
 }
@@ -64,7 +61,7 @@ func (m *AuthMiddleware) Use(h HandlerWithUser) utils.Handler {
 func createNewAccessTokenAndRefreshToken(r *http.Request) (user *utils.JWTUser, accessToken, refreshToken string, err error) {
 	oldRefreshToken, err := utils.GetRefreshToken(r)
 	if err != nil {
-		return nil, "", "", fmt.Errorf("error when getting refresh token")
+		return nil, "", "", err
 	}
 
 	user, err = utils.ParseUserToken(oldRefreshToken)
