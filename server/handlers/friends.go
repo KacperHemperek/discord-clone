@@ -3,25 +3,39 @@ package handlers
 import (
 	"errors"
 	"github.com/go-playground/validator/v10"
+	"github.com/kacperhemperek/discord-go/middlewares"
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
 	"net/http"
 )
 
-type SendFriendRequestBody struct {
-	Email string `json:"email" validate:"required"`
-}
-
-type SendFriendRequestHandler struct {
+type sendFriendRequestHandler struct {
 	validate    *validator.Validate
 	userService *store.UserService
 }
 
-type GetFriendRequestsHandler struct {
+type getFriendRequestsHandler struct {
 	userService *store.UserService
 }
 
-func (h *SendFriendRequestHandler) Handle(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
+func HandleSendFriendRequest(userService *store.UserService, validate *validator.Validate) middlewares.HandlerWithUser {
+	handler := &sendFriendRequestHandler{
+		validate:    validate,
+		userService: userService,
+	}
+
+	return handler.handle
+}
+
+func HandleGetFriendRequests(userService *store.UserService) middlewares.HandlerWithUser {
+	handler := &getFriendRequestsHandler{
+		userService: userService,
+	}
+
+	return handler.handle
+}
+
+func (h *sendFriendRequestHandler) handle(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
 	body := &SendFriendRequestBody{}
 
 	if err := utils.ReadBody(r, body); err != nil {
@@ -52,7 +66,7 @@ func (h *SendFriendRequestHandler) Handle(w http.ResponseWriter, r *http.Request
 	return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request sent"})
 }
 
-func (h *GetFriendRequestsHandler) Handle(w http.ResponseWriter, _ *http.Request, user *utils.JWTUser) error {
+func (h *getFriendRequestsHandler) handle(w http.ResponseWriter, _ *http.Request, user *utils.JWTUser) error {
 	friendRequests, err := h.userService.GetFriendRequests(user.ID)
 
 	if err != nil {
@@ -62,24 +76,6 @@ func (h *GetFriendRequestsHandler) Handle(w http.ResponseWriter, _ *http.Request
 	return utils.WriteJson(w, http.StatusOK, &utils.JSON{"requests": friendRequests})
 }
 
-type NewSendFriendRequestProps struct {
-	Validate    *validator.Validate
-	UserService *store.UserService
-}
-
-type NewGetFriendRequestsProps struct {
-	UserService *store.UserService
-}
-
-func NewSendFriendRequestHandler(props *NewSendFriendRequestProps) *SendFriendRequestHandler {
-	return &SendFriendRequestHandler{
-		validate:    props.Validate,
-		userService: props.UserService,
-	}
-}
-
-func NewGetFriendRequestsHandler(props *NewGetFriendRequestsProps) *GetFriendRequestsHandler {
-	return &GetFriendRequestsHandler{
-		userService: props.UserService,
-	}
+type SendFriendRequestBody struct {
+	Email string `json:"email" validate:"required"`
 }

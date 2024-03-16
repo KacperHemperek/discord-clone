@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
-	"github.com/kacperhemperek/discord-go/handlers"
 	"github.com/kacperhemperek/discord-go/middlewares"
 	"github.com/kacperhemperek/discord-go/store"
-	"github.com/kacperhemperek/discord-go/utils"
 	"github.com/kacperhemperek/discord-go/ws"
 	"github.com/rs/cors"
 	"log"
@@ -38,94 +36,7 @@ func (s *Server) Start() {
 	// register all middlewares
 	authMiddleware := middlewares.NewAuthMiddleware()
 
-	router.HandleFunc("/healthcheck", utils.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
-		return utils.WriteJson(w, http.StatusOK, utils.JSON{"status": "ok"})
-	})).Methods("GET")
-
-	registerHandler := handlers.NewRegisterUserHandler(&handlers.RegisterUserParams{
-		UserService: userService,
-		Validator:   v,
-	})
-
-	router.HandleFunc(
-		"/auth/register",
-		utils.HandlerFunc(registerHandler.Handle),
-	).Methods(http.MethodPost)
-
-	loginHandler := handlers.NewLoginHandler(&handlers.LoginUserParams{
-		UserService: userService,
-		Validator:   v,
-	})
-
-	router.HandleFunc(
-		"/auth/login",
-		utils.HandlerFunc(loginHandler.Handle),
-	).Methods(http.MethodPost)
-
-	getLoggedInUserHandler := handlers.NewGetLoggedInUserHandler(
-		&handlers.GetLoggedInUserParams{
-			UserService: userService,
-		},
-	)
-	router.HandleFunc(
-		"/auth/me",
-		utils.HandlerFunc(authMiddleware.Use(getLoggedInUserHandler.Handle)),
-	).Methods(http.MethodGet)
-
-	logoutHandler := handlers.NewLogoutUserHandler()
-
-	router.HandleFunc(
-		"/auth/logout",
-		utils.HandlerFunc(logoutHandler.Handle),
-	).Methods(http.MethodPost)
-
-	sendFriendRequestHandler := handlers.NewSendFriendRequestHandler(&handlers.NewSendFriendRequestProps{
-		Validate:    v,
-		UserService: userService,
-	})
-
-	router.HandleFunc(
-		"/friends",
-		utils.HandlerFunc(
-			authMiddleware.Use(sendFriendRequestHandler.Handle),
-		),
-	).Methods(http.MethodPost)
-
-	getFriendRequestsHandler := handlers.NewGetFriendRequestsHandler(&handlers.NewGetFriendRequestsProps{
-		UserService: userService,
-	})
-
-	router.HandleFunc(
-		"/friends/requests",
-		utils.HandlerFunc(
-			authMiddleware.Use(getFriendRequestsHandler.Handle),
-		),
-	).Methods(http.MethodGet)
-
-	subscribeNotificationsHandler := handlers.NewSubscribeNotificationsHandler(
-		&handlers.NewSubscribeNotificationsParams{
-			WsNotificationService: notificationsWsService,
-		})
-
-	router.HandleFunc(
-		"/notifications",
-		utils.HandlerFunc(
-			authMiddleware.Use(subscribeNotificationsHandler.Handle),
-		),
-	).Methods(http.MethodGet)
-
-	createNotificationHandler := handlers.NewCreateNotificationHandler(
-		&handlers.NewCreateNotificationParams{
-			WsNotificationService: notificationsWsService,
-			Validate:              v,
-		})
-
-	router.HandleFunc(
-		"/notifications",
-		utils.HandlerFunc(
-			authMiddleware.Use(createNotificationHandler.Handle),
-		),
-	).Methods(http.MethodPost)
+	SetupRoutes(router, userService, v, authMiddleware, notificationsWsService)
 
 	portStr := fmt.Sprintf(":%d", s.port)
 	fmt.Printf("Server is running on port %d\n", s.port)

@@ -4,21 +4,39 @@ import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/websocket"
+	"github.com/kacperhemperek/discord-go/middlewares"
 	"github.com/kacperhemperek/discord-go/utils"
 	"github.com/kacperhemperek/discord-go/ws"
 	"net/http"
 )
 
-type SubscribeNotificationsHandler struct {
+type subscribeNotificationsHandler struct {
 	wsNotificationService *ws.NotificationService
 }
 
-type CreateNotificationHandler struct {
+type createNotificationHandler struct {
 	wsNotificationService *ws.NotificationService
 	validate              *validator.Validate
 }
 
-func (h *SubscribeNotificationsHandler) Handle(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
+func HandleSubscribeNotifications(notificationWsService *ws.NotificationService) middlewares.HandlerWithUser {
+	handler := &subscribeNotificationsHandler{
+		wsNotificationService: notificationWsService,
+	}
+
+	return handler.handle
+}
+
+func HandleCreateNotification(notificationWsService *ws.NotificationService, validate *validator.Validate) middlewares.HandlerWithUser {
+	handler := &createNotificationHandler{
+		wsNotificationService: notificationWsService,
+		validate:              validate,
+	}
+
+	return handler.handle
+}
+
+func (h *subscribeNotificationsHandler) handle(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -48,7 +66,7 @@ func (h *SubscribeNotificationsHandler) Handle(w http.ResponseWriter, r *http.Re
 
 }
 
-func (h *CreateNotificationHandler) Handle(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
+func (h *createNotificationHandler) handle(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
 	body := &CreateNotificationBody{}
 	if err := utils.ReadBody(r, body); err != nil {
 		return err
@@ -67,24 +85,7 @@ type CreateNotificationBody struct {
 	Message string `json:"message" validate:"required"`
 }
 
-type NewSubscribeNotificationsParams struct {
-	WsNotificationService *ws.NotificationService
-}
-
 type NewCreateNotificationParams struct {
 	WsNotificationService *ws.NotificationService
 	Validate              *validator.Validate
-}
-
-func NewSubscribeNotificationsHandler(params *NewSubscribeNotificationsParams) *SubscribeNotificationsHandler {
-	return &SubscribeNotificationsHandler{
-		wsNotificationService: params.WsNotificationService,
-	}
-}
-
-func NewCreateNotificationHandler(params *NewCreateNotificationParams) *CreateNotificationHandler {
-	return &CreateNotificationHandler{
-		wsNotificationService: params.WsNotificationService,
-		validate:              params.Validate,
-	}
 }

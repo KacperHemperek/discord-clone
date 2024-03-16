@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"github.com/go-playground/validator/v10"
+	"github.com/kacperhemperek/discord-go/middlewares"
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
 	"net/http"
@@ -20,23 +21,30 @@ type LoginUserRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
-type RegisterUserHandler struct {
+type registerUserHandler struct {
 	userService *store.UserService
 	validator   *validator.Validate
 }
 
-type LoginHandler struct {
+type loginHandler struct {
 	userService *store.UserService
-	validator   *validator.Validate
+	validate    *validator.Validate
 }
 
-type GetLoggedInUserHandler struct {
-	userService *store.UserService
+type getLoggedInUserHandler struct{}
+
+type logoutUserHandler struct{}
+
+func HandleRegisterUser(userService *store.UserService, validate *validator.Validate) utils.Handler {
+	handler := &registerUserHandler{
+		userService: userService,
+		validator:   validate,
+	}
+
+	return handler.handle
 }
 
-type LogoutUserHandler struct{}
-
-func (h *RegisterUserHandler) Handle(w http.ResponseWriter, r *http.Request) error {
+func (h *registerUserHandler) handle(w http.ResponseWriter, r *http.Request) error {
 	body := &RegisterUserRequest{}
 
 	if err := utils.ReadBody(r, body); err != nil {
@@ -106,7 +114,16 @@ func (h *RegisterUserHandler) Handle(w http.ResponseWriter, r *http.Request) err
 	})
 }
 
-func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) error {
+func HandleLogin(userService *store.UserService, validate *validator.Validate) utils.Handler {
+	handler := &loginHandler{
+		userService: userService,
+		validate:    validate,
+	}
+
+	return handler.handle
+}
+
+func (h *loginHandler) handle(w http.ResponseWriter, r *http.Request) error {
 	InvalidRequestApiError := &utils.ApiError{
 		Code:    http.StatusBadRequest,
 		Message: "Invalid request body",
@@ -123,7 +140,7 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return InvalidRequestApiError
 	}
 
-	if err := h.validator.Struct(body); err != nil {
+	if err := h.validate.Struct(body); err != nil {
 		return InvalidRequestApiError
 	}
 
@@ -177,50 +194,24 @@ func (h *LoginHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	)
 }
 
-func (h *GetLoggedInUserHandler) Handle(w http.ResponseWriter, _ *http.Request, user *utils.JWTUser) error {
+func HandleGetLoggedInUser() middlewares.HandlerWithUser {
+	handler := &getLoggedInUserHandler{}
+
+	return handler.handle
+}
+
+func (h *getLoggedInUserHandler) handle(w http.ResponseWriter, _ *http.Request, user *utils.JWTUser) error {
 	return utils.WriteJson(w, http.StatusOK, &utils.JSON{"user": user})
 }
 
-func (h *LogoutUserHandler) Handle(w http.ResponseWriter, _ *http.Request) error {
+func HandleLogoutUser() utils.Handler {
+	handler := &logoutUserHandler{}
+
+	return handler.Handle
+}
+
+func (h *logoutUserHandler) Handle(w http.ResponseWriter, _ *http.Request) error {
 	utils.RemoveAuthTokensCookies(w)
 
 	return utils.WriteJson(w, http.StatusOK, &utils.JSON{"message": "user successfully logged out"})
-}
-
-type RegisterUserParams struct {
-	UserService *store.UserService
-	Validator   *validator.Validate
-}
-
-type LoginUserParams struct {
-	UserService *store.UserService
-	Validator   *validator.Validate
-}
-
-type GetLoggedInUserParams struct {
-	UserService *store.UserService
-}
-
-func NewRegisterUserHandler(p *RegisterUserParams) *RegisterUserHandler {
-	return &RegisterUserHandler{
-		userService: p.UserService,
-		validator:   p.Validator,
-	}
-}
-
-func NewLoginHandler(p *LoginUserParams) *LoginHandler {
-	return &LoginHandler{
-		userService: p.UserService,
-		validator:   p.Validator,
-	}
-}
-
-func NewGetLoggedInUserHandler(p *GetLoggedInUserParams) *GetLoggedInUserHandler {
-	return &GetLoggedInUserHandler{
-		userService: p.UserService,
-	}
-}
-
-func NewLogoutUserHandler() *LogoutUserHandler {
-	return &LogoutUserHandler{}
 }
