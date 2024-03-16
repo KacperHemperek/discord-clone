@@ -1,43 +1,40 @@
 import { Check, X } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
-import { api } from "@app/api";
-import { useFriendRequests } from "../../context/FriendRequestsProvider";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { api, QueryKeys } from "@app/api";
 import FriendListItemButton from "./FriendItemButton";
+import { useToast } from "@app/hooks/useToast.tsx";
+import { ClientError } from "@app/utils/clientError.ts";
 
 export default function FriendRequestItem({
   id,
-  userId,
   username,
-  avatar,
 }: {
   id: number;
   username: string;
-  userId: number;
-  avatar?: string;
 }) {
-  const { removeRequest } = useFriendRequests();
+  const queryClient = useQueryClient();
+  const toast = useToast();
 
   const { mutate: acceptMutation } = useMutation({
-    mutationKey: ["friend-request-accept", id],
-    mutationFn: async () =>
-      api.put<CommonResponsesTypes.MessageSuccessResponseType>(
-        `/friends/invites/${id}/accept`,
-      ),
-    onSuccess: () => {
-      removeRequest(id);
+    mutationKey: ["accept-friend-request", id],
+    mutationFn: async () => api.post(`/friends/requests/${id}/accept`),
+    onSuccess: async () => {
+      await queryClient.refetchQueries({
+        queryKey: QueryKeys.getPendingFriendRequests(),
+      });
+    },
+    onError: (err: ClientError) => {
+      if (err.code !== 500) {
+        toast.error(err.message);
+        return;
+      }
+      toast.error("Failed to accept friend request");
     },
   });
 
   const { mutate: declineMutation } = useMutation({
     mutationKey: ["friend-request-decline", id],
-    mutationFn: async () =>
-      api.put<CommonResponsesTypes.MessageSuccessResponseType>(
-        `/friends/invites/${id}/decline`,
-      ),
-
-    onSuccess: () => {
-      removeRequest(id);
-    },
+    mutationFn: async () => api.put(`/friends/invites/${id}/decline`),
   });
 
   function acceptFriendRequest() {

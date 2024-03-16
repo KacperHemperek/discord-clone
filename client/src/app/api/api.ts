@@ -1,5 +1,5 @@
 import { ClientError } from "../utils/clientError";
-import { ErrorResponse } from "@app/api";
+import { ErrorResponse, SuccessMessageResponse } from "@app/api";
 
 type RequestOptions = Omit<RequestInit, "method">;
 type GetRequestOptions = Omit<RequestOptions, "body">;
@@ -40,7 +40,10 @@ export class api {
    * @param options fetch options
    * @description Calls api with method PUT and returns json response of type T
    */
-  static async put<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  static async put<T = SuccessMessageResponse>(
+    path: string,
+    options: RequestOptions = {},
+  ): Promise<T> {
     return await request<T>(path, {
       ...options,
       method: "PUT",

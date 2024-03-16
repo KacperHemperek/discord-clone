@@ -53,7 +53,6 @@ export default function FriendRequestsPage() {
         {filteredRequests.map((request) => (
           <FriendRequestItem
             id={request.id}
-            userId={request.user.id}
             username={request.user.username}
             key={request.id}
           />
