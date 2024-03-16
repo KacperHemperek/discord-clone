@@ -4,12 +4,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-playground/validator/v10"
 	"net/http"
 	"time"
 )
 
 func ReadBody(r *http.Request, v interface{}) error {
 	return json.NewDecoder(r.Body).Decode(v)
+}
+
+func ReadAndValidateBody(r *http.Request, v interface{}, validate *validator.Validate) error {
+	err := ReadBody(r, v)
+	if err != nil {
+		return err
+	}
+	return validate.Struct(v)
 }
 
 func HandlerFunc(handler Handler) http.HandlerFunc {
