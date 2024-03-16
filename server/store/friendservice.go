@@ -74,6 +74,34 @@ func (s *FriendshipService) GetFriendshipByUsers(userId, friendId int) (*models.
 	return friendship, nil
 }
 
+func (s *FriendshipService) GetFriendshipById(requestId int) (*models.Friendship, error) {
+	row := s.db.QueryRow(
+		"SELECT id, inviter_id, friend_id, status, seen, requested_at, status_updated_at FROM friendships WHERE id = $1;",
+		requestId,
+	)
+
+	friendship, err := scanFriendship(row)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return friendship, nil
+}
+
+func (s *FriendshipService) AcceptFriendRequest(requestId int) error {
+	_, err := s.db.Exec(
+		"UPDATE friendships SET status = 'accepted', status_updated_at = CURRENT_TIMESTAMP WHERE id = $1;",
+		requestId,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func NewFriendshipService(db *Database) *FriendshipService {
 	return &FriendshipService{db: db}
 }

@@ -41,7 +41,6 @@ func scanFriendship(row Scanner) (*models.Friendship, error) {
 		&friendship.InviterID,
 		&friendship.FriendID,
 		&friendship.Status,
-		&friendship.Accepted,
 		&friendship.Seen,
 		&friendship.RequestedAt,
 		&friendship.StatusChangedAt,
@@ -54,6 +53,8 @@ func scanFriendship(row Scanner) (*models.Friendship, error) {
 	return friendship, nil
 }
 
+// Scans friend request from the given Scanner, this function accepts sql.Rows and sql.Row as Scanner
+// and returns a FriendRequest and an error if the scan fails
 func scanFriendRequest(s Scanner) (*models.FriendRequest, error) {
 	friendRequest := &models.FriendRequest{
 		User: &models.User{},

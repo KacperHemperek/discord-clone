@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/mux"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -63,6 +65,20 @@ func WriteJson(w http.ResponseWriter, status int, data interface{}) error {
 		return json.NewEncoder(w).Encode(data)
 	}
 	return nil
+}
+
+func GetIntParam(r *http.Request, param string) (int, error) {
+	params := mux.Vars(r)
+	value, ok := params[param]
+	if !ok {
+		return 0, errors.New("missing param")
+	}
+	number, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, errors.New("invalid int param")
+	}
+
+	return number, nil
 }
 
 type Handler func(w http.ResponseWriter, r *http.Request) error
