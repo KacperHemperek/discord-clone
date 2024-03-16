@@ -53,3 +53,29 @@ func scanFriendship(row Scanner) (*models.Friendship, error) {
 
 	return friendship, nil
 }
+
+func scanFriendRequest(s Scanner) (*models.FriendRequest, error) {
+	friendRequest := &models.FriendRequest{
+		User: &models.User{},
+	}
+
+	err := s.Scan(
+		&friendRequest.ID,
+		&friendRequest.Status,
+		&friendRequest.RequestedAt,
+		&friendRequest.StatusChangedAt,
+		&friendRequest.User.ID,
+		&friendRequest.User.Username,
+		&friendRequest.User.Email,
+		&friendRequest.User.Active,
+		&friendRequest.User.Password,
+		&friendRequest.User.CreatedAt,
+		&friendRequest.User.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return friendRequest, nil
+}

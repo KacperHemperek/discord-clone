@@ -23,15 +23,15 @@ func (s *FriendshipService) SendFriendRequest(inviterId, friendId int) error {
 	return nil
 }
 
-func (s *FriendshipService) GetFriendRequests(userId int) ([]*models.User, error) {
+func (s *FriendshipService) GetFriendRequests(userId int) ([]*models.FriendRequest, error) {
 	rows, err := s.db.Query(
 		`
-		SELECT u.id, u.username, u.email, u.active, u.password, u.created_at, u.updated_at 
+		SELECT f.id, f.status, f.requested_at, f.status_updated_at, u.id, u.username, u.email, u.active, u.password, u.created_at, u.updated_at 
 		FROM friendships f JOIN users u ON f.inviter_id = u.id WHERE f.friend_id = $1 AND f.status = 'pending';
 		`,
 		userId,
 	)
-	users := make([]*models.User, 0)
+	users := make([]*models.FriendRequest, 0)
 	if err != nil {
 		return users, err
 	}
@@ -44,11 +44,11 @@ func (s *FriendshipService) GetFriendRequests(userId int) ([]*models.User, error
 	}()
 
 	for rows.Next() {
-		user, err := scanUser(rows)
+		user, err := scanFriendRequest(rows)
 
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return []*models.User{}, nil
+				return []*models.FriendRequest{}, nil
 			}
 			return nil, err
 		}
@@ -57,6 +57,21 @@ func (s *FriendshipService) GetFriendRequests(userId int) ([]*models.User, error
 	}
 
 	return users, nil
+}
+
+func (s *FriendshipService) GetFriendshipByUsers(userId, friendId int) (*models.Friendship, error) {
+	row := s.db.QueryRow(
+		"SELECT id, inviter_id, friend_id, status FROM friendships WHERE (inviter_id = $1 AND friend_id = $2) OR (inviter_id = $2 AND friend_id = $1);",
+		userId, friendId,
+	)
+
+	friendship, err := scanFriendship(row)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return friendship, nil
 }
 
 func NewFriendshipService(db *Database) *FriendshipService {
