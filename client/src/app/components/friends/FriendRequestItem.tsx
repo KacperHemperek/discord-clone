@@ -22,6 +22,7 @@ export default function FriendRequestItem({
       await queryClient.refetchQueries({
         queryKey: QueryKeys.getPendingFriendRequests(),
       });
+      toast.success("Friend request accepted, user added to friends list");
     },
     onError: (err: ClientError) => {
       if (err.code !== 500) {
@@ -33,8 +34,21 @@ export default function FriendRequestItem({
   });
 
   const { mutate: declineMutation } = useMutation({
-    mutationKey: ["friend-request-decline", id],
-    mutationFn: async () => api.put(`/friends/invites/${id}/decline`),
+    mutationKey: ["reject-friend-request", id],
+    mutationFn: async () => api.put(`/friends/requests/${id}/reject`),
+    onSuccess: async () => {
+      await queryClient.refetchQueries({
+        queryKey: QueryKeys.getPendingFriendRequests(),
+      });
+      toast.success("Friend request declined");
+    },
+    onError: (err: ClientError) => {
+      if (err.code !== 500) {
+        toast.error(err.message);
+        return;
+      }
+      toast.error("Failed to decline friend request");
+    },
   });
 
   function acceptFriendRequest() {
