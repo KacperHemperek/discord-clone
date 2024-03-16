@@ -8,7 +8,6 @@ import (
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
 	"net/http"
-	"strconv"
 )
 
 type sendFriendRequestHandler struct {
@@ -18,12 +17,10 @@ type sendFriendRequestHandler struct {
 }
 
 type getFriendRequestsHandler struct {
-	userService       *store.UserService
 	friendshipService *store.FriendshipService
 }
 
 type acceptFriendRequestHandler struct {
-	userService       *store.UserService
 	friendshipService *store.FriendshipService
 	validate          *validator.Validate
 }
@@ -38,23 +35,27 @@ func HandleSendFriendRequest(userService *store.UserService, friendshipService *
 	return handler.handle
 }
 
-func HandleGetFriendRequests(userService *store.UserService, friendshipService *store.FriendshipService) middlewares.HandlerWithUser {
+func HandleGetFriendRequests(friendshipService *store.FriendshipService) middlewares.HandlerWithUser {
 	handler := &getFriendRequestsHandler{
-		userService:       userService,
 		friendshipService: friendshipService,
 	}
 
 	return handler.handle
 }
 
-func HandleAcceptFriendRequest(userService *store.UserService, friendshipService *store.FriendshipService, validate *validator.Validate) middlewares.HandlerWithUser {
+func HandleAcceptFriendRequest(friendshipService *store.FriendshipService, validate *validator.Validate) middlewares.HandlerWithUser {
 	handler := &acceptFriendRequestHandler{
-		userService:       userService,
 		friendshipService: friendshipService,
 		validate:          validate,
 	}
 
 	return handler.handle
+}
+
+func HandleRedjectFriendRequest(friendshipService store.FriendshipService) utils.Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	}
 }
 
 func (h *acceptFriendRequestHandler) handle(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
@@ -91,7 +92,7 @@ func (h *acceptFriendRequestHandler) handle(w http.ResponseWriter, r *http.Reque
 		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when accepting friend request", Cause: err}
 	}
 
-	return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request accepted " + strconv.Itoa(requestId)})
+	return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request accepted"})
 }
 
 func (h *sendFriendRequestHandler) handle(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
@@ -126,7 +127,7 @@ func (h *sendFriendRequestHandler) handle(w http.ResponseWriter, r *http.Request
 }
 
 func (h *getFriendRequestsHandler) handle(w http.ResponseWriter, _ *http.Request, user *utils.JWTUser) error {
-	friendRequests, err := h.friendshipService.GetFriendRequests(user.ID)
+	friendRequests, err := h.friendshipService.GetUsersFriendRequests(user.ID)
 
 	if err != nil {
 		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when getting friend requests", Cause: err}

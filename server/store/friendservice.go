@@ -23,7 +23,7 @@ func (s *FriendshipService) SendFriendRequest(inviterId, friendId int) error {
 	return nil
 }
 
-func (s *FriendshipService) GetFriendRequests(userId int) ([]*models.FriendRequest, error) {
+func (s *FriendshipService) GetUsersFriendRequests(userId int) ([]*models.FriendRequest, error) {
 	rows, err := s.db.Query(
 		`
 		SELECT f.id, f.status, f.requested_at, f.status_updated_at, u.id, u.username, u.email, u.active, u.password, u.created_at, u.updated_at 
