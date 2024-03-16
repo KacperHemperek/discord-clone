@@ -35,7 +35,7 @@ export default function FriendRequestItem({
 
   const { mutate: declineMutation } = useMutation({
     mutationKey: ["reject-friend-request", id],
-    mutationFn: async () => api.put(`/friends/requests/${id}/reject`),
+    mutationFn: async () => api.post(`/friends/requests/${id}/reject`),
     onSuccess: async () => {
       await queryClient.refetchQueries({
         queryKey: QueryKeys.getPendingFriendRequests(),
