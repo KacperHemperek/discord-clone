@@ -29,7 +29,7 @@ func (s *UserService) FindUserByEmail(email string) (*models.User, error) {
 	}()
 
 	for rows.Next() {
-		user, err := ScanUser(rows)
+		user, err := scanUser(rows)
 
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -66,7 +66,7 @@ func (s *UserService) CreateUser(username, password, email string) (*models.User
 	}()
 
 	for rows.Next() {
-		user, err := ScanUser(rows)
+		user, err := scanUser(rows)
 
 		if err != nil {
 			return nil, err
@@ -76,66 +76,6 @@ func (s *UserService) CreateUser(username, password, email string) (*models.User
 	}
 
 	return nil, UserUnknownError
-}
-
-func (s *UserService) SendFriendRequest(inviterId, friendId int) error {
-	_, err := s.db.Query(
-		"INSERT INTO friendships (inviter_id, friend_id) VALUES ($1, $2)",
-		inviterId, friendId)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *UserService) GetFriendRequests(userId int) ([]*models.User, error) {
-	rows, err := s.db.Query(
-		`
-		SELECT u.id, u.username, u.email, u.active, u.password, u.created_at, u.updated_at 
-		FROM friendships f JOIN users u ON f.inviter_id = u.id WHERE f.friend_id = $1 AND f.status = 'pending';
-		`,
-		userId,
-	)
-	users := make([]*models.User, 0)
-	if err != nil {
-		return users, err
-	}
-
-	defer func() {
-		err := rows.Close()
-		if err != nil {
-			fmt.Println("ERROR userservice: ", err)
-		}
-	}()
-
-	for rows.Next() {
-		user, err := ScanUser(rows)
-
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return []*models.User{}, nil
-			}
-			return nil, err
-		}
-
-		users = append(users, user)
-	}
-
-	return users, nil
-}
-
-func ScanUser(rows *sql.Rows) (*models.User, error) {
-	user := &models.User{}
-
-	err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Active, &user.Password, &user.CreatedAt, &user.UpdatedAt)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
 }
 
 var UserNotFoundError = errors.New("user not found")

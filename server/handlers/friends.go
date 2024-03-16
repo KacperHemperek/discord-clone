@@ -10,26 +10,30 @@ import (
 )
 
 type sendFriendRequestHandler struct {
-	validate    *validator.Validate
-	userService *store.UserService
+	validate          *validator.Validate
+	userService       *store.UserService
+	friendshipService *store.FriendshipService
 }
 
 type getFriendRequestsHandler struct {
-	userService *store.UserService
+	userService       *store.UserService
+	friendshipService *store.FriendshipService
 }
 
-func HandleSendFriendRequest(userService *store.UserService, validate *validator.Validate) middlewares.HandlerWithUser {
+func HandleSendFriendRequest(userService *store.UserService, friendshipService *store.FriendshipService, validate *validator.Validate) middlewares.HandlerWithUser {
 	handler := &sendFriendRequestHandler{
-		validate:    validate,
-		userService: userService,
+		validate:          validate,
+		userService:       userService,
+		friendshipService: friendshipService,
 	}
 
 	return handler.handle
 }
 
-func HandleGetFriendRequests(userService *store.UserService) middlewares.HandlerWithUser {
+func HandleGetFriendRequests(userService *store.UserService, friendshipService *store.FriendshipService) middlewares.HandlerWithUser {
 	handler := &getFriendRequestsHandler{
-		userService: userService,
+		userService:       userService,
+		friendshipService: friendshipService,
 	}
 
 	return handler.handle
@@ -59,7 +63,7 @@ func (h *sendFriendRequestHandler) handle(w http.ResponseWriter, r *http.Request
 		return &utils.ApiError{Code: http.StatusBadRequest, Message: "Cannot send friend request to yourself", Cause: nil}
 	}
 
-	if err := h.userService.SendFriendRequest(user.ID, userToSendRequest.ID); err != nil {
+	if err := h.friendshipService.SendFriendRequest(user.ID, userToSendRequest.ID); err != nil {
 		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when sending friend request", Cause: err}
 	}
 
@@ -67,7 +71,7 @@ func (h *sendFriendRequestHandler) handle(w http.ResponseWriter, r *http.Request
 }
 
 func (h *getFriendRequestsHandler) handle(w http.ResponseWriter, _ *http.Request, user *utils.JWTUser) error {
-	friendRequests, err := h.userService.GetFriendRequests(user.ID)
+	friendRequests, err := h.friendshipService.GetFriendRequests(user.ID)
 
 	if err != nil {
 		return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when getting friend requests", Cause: err}
