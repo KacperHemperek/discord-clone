@@ -141,6 +141,40 @@ func (s *FriendshipService) DeleteFriendship(requestId int) error {
 	return nil
 }
 
+func (s *FriendshipService) DeleteRequestAndSendNew(requestId, inviterId, friendId int) error {
+	tx, err := s.db.Begin()
+
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(
+		"DELETE FROM friendships WHERE id = $1;",
+		requestId,
+	)
+
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	_, err = tx.Exec(
+		"INSERT INTO friendships (inviter_id, friend_id) VALUES ($1, $2);",
+		inviterId, friendId,
+	)
+
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func NewFriendshipService(db *Database) *FriendshipService {
 	return &FriendshipService{db: db}
 }
