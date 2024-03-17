@@ -128,19 +128,6 @@ func (s *FriendshipService) MakeFriendshipPending(requestId int) error {
 	return nil
 }
 
-func (s *FriendshipService) DeleteFriendship(requestId int) error {
-	_, err := s.db.Exec(
-		"DELETE FROM friendships WHERE id = $1;",
-		requestId,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (s *FriendshipService) DeleteRequestAndSendNew(requestId, inviterId, friendId int) error {
 	tx, err := s.db.Begin()
 
