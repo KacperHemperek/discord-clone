@@ -1,10 +1,13 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/kacperhemperek/discord-go/models"
+	"github.com/kacperhemperek/discord-go/utils"
+	"time"
 )
 
 type FriendshipService struct {
@@ -12,7 +15,11 @@ type FriendshipService struct {
 }
 
 func (s *FriendshipService) SendFriendRequest(inviterId, friendId int) error {
-	_, err := s.db.Query(
+	defer utils.LogServiceCall("FriendshipService", "SendFriendRequest", time.Now())
+	ctx := context.Background()
+	context.WithTimeout(ctx, 200*time.Millisecond)
+	_, err := s.db.QueryContext(
+		ctx,
 		"INSERT INTO friendships (inviter_id, friend_id) VALUES ($1, $2)",
 		inviterId, friendId)
 
@@ -24,7 +31,11 @@ func (s *FriendshipService) SendFriendRequest(inviterId, friendId int) error {
 }
 
 func (s *FriendshipService) GetUsersFriendRequests(userId int) ([]*models.FriendRequest, error) {
-	rows, err := s.db.Query(
+	defer utils.LogServiceCall("FriendshipService", "GetUsersFriendRequests", time.Now())
+	ctx := context.Background()
+	context.WithTimeout(ctx, 200*time.Millisecond)
+	rows, err := s.db.QueryContext(
+		ctx,
 		`
 		SELECT f.id, f.status, f.requested_at, f.status_updated_at, u.id, u.username, u.email, u.active, u.password, u.created_at, u.updated_at 
 		FROM friendships f JOIN users u ON f.inviter_id = u.id WHERE f.friend_id = $1 AND f.status = 'pending';
@@ -60,7 +71,11 @@ func (s *FriendshipService) GetUsersFriendRequests(userId int) ([]*models.Friend
 }
 
 func (s *FriendshipService) GetFriendshipByUsers(userOneID, userTwoID int) (*models.Friendship, error) {
-	row := s.db.QueryRow(
+	defer utils.LogServiceCall("FriendshipService", "GetFriendshipByUsers", time.Now())
+	ctx := context.Background()
+	context.WithTimeout(ctx, 200*time.Millisecond)
+	row := s.db.QueryRowContext(
+		ctx,
 		"SELECT id, inviter_id, friend_id, status, seen, requested_at, status_updated_at FROM friendships WHERE (inviter_id = $1 AND friend_id = $2) OR (inviter_id = $2 AND friend_id = $1);",
 		userOneID, userTwoID,
 	)
@@ -75,7 +90,11 @@ func (s *FriendshipService) GetFriendshipByUsers(userOneID, userTwoID int) (*mod
 }
 
 func (s *FriendshipService) GetFriendshipById(requestId int) (*models.Friendship, error) {
-	row := s.db.QueryRow(
+	defer utils.LogServiceCall("FriendshipService", "GetFriendshipById", time.Now())
+	ctx := context.Background()
+	context.WithTimeout(ctx, 200*time.Millisecond)
+	row := s.db.QueryRowContext(
+		ctx,
 		"SELECT id, inviter_id, friend_id, status, seen, requested_at, status_updated_at FROM friendships WHERE id = $1;",
 		requestId,
 	)
@@ -90,7 +109,11 @@ func (s *FriendshipService) GetFriendshipById(requestId int) (*models.Friendship
 }
 
 func (s *FriendshipService) AcceptFriendRequest(requestId int) error {
-	_, err := s.db.Exec(
+	defer utils.LogServiceCall("FriendshipService", "AcceptFriendRequest", time.Now())
+	ctx := context.Background()
+	context.WithTimeout(ctx, 200*time.Millisecond)
+	_, err := s.db.ExecContext(
+		ctx,
 		"UPDATE friendships SET status = 'accepted', status_updated_at = CURRENT_TIMESTAMP WHERE id = $1;",
 		requestId,
 	)
@@ -103,7 +126,11 @@ func (s *FriendshipService) AcceptFriendRequest(requestId int) error {
 }
 
 func (s *FriendshipService) RejectFriendRequest(requestId int) error {
-	_, err := s.db.Exec(
+	defer utils.LogServiceCall("FriendshipService", "RejectFriendRequest", time.Now())
+	ctx := context.Background()
+	context.WithTimeout(ctx, 200*time.Millisecond)
+	_, err := s.db.ExecContext(
+		ctx,
 		"UPDATE friendships SET status = 'rejected', status_updated_at = CURRENT_TIMESTAMP WHERE id = $1;",
 		requestId,
 	)
@@ -116,7 +143,12 @@ func (s *FriendshipService) RejectFriendRequest(requestId int) error {
 }
 
 func (s *FriendshipService) MakeFriendshipPending(requestId int) error {
-	_, err := s.db.Exec(
+	defer utils.LogServiceCall("FriendshipService", "MakeFriendshipPending", time.Now())
+	ctx := context.Background()
+	context.WithTimeout(ctx, 200*time.Millisecond)
+
+	_, err := s.db.ExecContext(
+		ctx,
 		"UPDATE friendships SET status = 'pending', status_updated_at = CURRENT_TIMESTAMP WHERE id = $1;",
 		requestId,
 	)
@@ -129,6 +161,7 @@ func (s *FriendshipService) MakeFriendshipPending(requestId int) error {
 }
 
 func (s *FriendshipService) DeleteRequestAndSendNew(requestId, inviterId, friendId int) error {
+	defer utils.LogServiceCall("FriendshipService", "DeleteRequestAndSendNew", time.Now())
 	tx, err := s.db.Begin()
 
 	if err != nil {
