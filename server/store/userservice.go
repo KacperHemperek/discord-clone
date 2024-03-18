@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/kacperhemperek/discord-go/models"
+	"github.com/kacperhemperek/discord-go/utils"
+	"time"
 )
 
 type UserService struct {
@@ -12,6 +14,7 @@ type UserService struct {
 }
 
 func (s *UserService) FindUserByEmail(email string) (*models.User, error) {
+	defer utils.LogServiceCall("UserService", "FindUserByEmail", time.Now())
 	rows, err := s.db.Query(
 		"SELECT id, username, email, active, password, created_at, updated_at FROM users WHERE email = $1;",
 		email,
@@ -49,6 +52,7 @@ func (s *UserService) FindUserByEmail(email string) (*models.User, error) {
 }
 
 func (s *UserService) CreateUser(username, password, email string) (*models.User, error) {
+	defer utils.LogServiceCall("UserService", "CreateUser", time.Now())
 	rows, err := s.db.Query(
 		"INSERT INTO users (username, password, email) VALUES ($1, $2, $3) RETURNING id, username, email, active, password, created_at, updated_at;",
 		username, password, email,
