@@ -8,4 +8,4 @@ run: build
 	@./bin/main
 
 test:
-	@echo "No tests yet"
+	go test -count=1 ./...

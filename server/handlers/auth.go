@@ -106,7 +106,7 @@ func (h *registerUserHandler) handle(w http.ResponseWriter, r *http.Request) err
 		return refreshTokenError
 	}
 
-	utils.SetAuthTokens(w, accessToken, refreshToken)
+	utils.SetAuthCookies(w, accessToken, refreshToken)
 
 	return utils.WriteJson(w, http.StatusCreated, &utils.JSON{
 		"message": "user successfully registered",
@@ -182,7 +182,7 @@ func (h *loginHandler) handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	utils.SetAuthTokens(w, accessToken, refreshToken)
+	utils.SetAuthCookies(w, accessToken, refreshToken)
 
 	return utils.WriteJson(
 		w,

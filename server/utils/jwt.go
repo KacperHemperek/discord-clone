@@ -44,7 +44,7 @@ func newRefreshTokenCookie(token string) *http.Cookie {
 	}
 }
 
-func SetAuthTokens(w http.ResponseWriter, accessToken string, refreshToken string) {
+func SetAuthCookies(w http.ResponseWriter, accessToken string, refreshToken string) {
 
 	tokenCookie := newAccessTokenCookie(accessToken)
 	refreshCookie := newRefreshTokenCookie(refreshToken)

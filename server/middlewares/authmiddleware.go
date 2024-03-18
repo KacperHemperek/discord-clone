@@ -28,7 +28,7 @@ func (m *AuthMiddleware) Use(h HandlerWithUser) utils.Handler {
 				return unauthorizedApiError
 			}
 
-			utils.SetAuthTokens(w, accessToken, newRefreshToken)
+			utils.SetAuthCookies(w, accessToken, newRefreshToken)
 
 			if err != nil {
 				return unauthorizedApiError
@@ -49,7 +49,7 @@ func (m *AuthMiddleware) Use(h HandlerWithUser) utils.Handler {
 				return unauthorizedApiError
 			}
 
-			utils.SetAuthTokens(w, accessToken, newRefreshToken)
+			utils.SetAuthCookies(w, accessToken, newRefreshToken)
 
 			accessTokenUser = refreshTokenUser
 		}
