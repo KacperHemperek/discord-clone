@@ -37,7 +37,7 @@ func (s *Server) Start() {
 	// register all middlewares
 	authMiddleware := middlewares.NewAuthMiddleware()
 
-	setupRoutes(router, userService, friendshipService, v, authMiddleware, notificationsWsService)
+	setupRoutes(router, authMiddleware, userService, friendshipService, notificationsWsService, v)
 
 	portStr := fmt.Sprintf(":%d", s.port)
 	fmt.Printf("Server is running on port %d\n", s.port)

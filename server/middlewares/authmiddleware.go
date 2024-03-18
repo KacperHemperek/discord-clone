@@ -8,53 +8,55 @@ import (
 	"net/http"
 )
 
-type AuthMiddleware struct{}
-
 var unauthorizedApiError = &utils.ApiError{
 	Code:    http.StatusUnauthorized,
 	Message: "Unauthorized",
 }
 
-func (m *AuthMiddleware) Use(h HandlerWithUser) utils.Handler {
-	return func(w http.ResponseWriter, r *http.Request) error {
-		accessToken, err := utils.GetAccessToken(r)
-		if err != nil {
-			if !errors.Is(err, http.ErrNoCookie) {
-				return unauthorizedApiError
+type AuthMiddleware = func(h HandlerWithUser) utils.Handler
+
+func NewAuthMiddleware() func(h HandlerWithUser) utils.Handler {
+	return func(h HandlerWithUser) utils.Handler {
+		return func(w http.ResponseWriter, r *http.Request) error {
+			accessToken, err := utils.GetAccessToken(r)
+			if err != nil {
+				if !errors.Is(err, http.ErrNoCookie) {
+					return unauthorizedApiError
+				}
+				user, accessToken, newRefreshToken, err := createNewAccessTokenAndRefreshToken(r)
+
+				if err != nil {
+					return unauthorizedApiError
+				}
+
+				utils.SetAuthCookies(w, accessToken, newRefreshToken)
+
+				if err != nil {
+					return unauthorizedApiError
+				}
+
+				return h(w, r, user)
 			}
-			user, accessToken, newRefreshToken, err := createNewAccessTokenAndRefreshToken(r)
+
+			accessTokenUser, err := utils.ParseUserToken(accessToken)
 
 			if err != nil {
-				return unauthorizedApiError
+				if !errors.Is(err, jwt.ErrTokenExpired) {
+					return unauthorizedApiError
+				}
+				refreshTokenUser, accessToken, newRefreshToken, err := createNewAccessTokenAndRefreshToken(r)
+
+				if err != nil {
+					return unauthorizedApiError
+				}
+
+				utils.SetAuthCookies(w, accessToken, newRefreshToken)
+
+				accessTokenUser = refreshTokenUser
 			}
 
-			utils.SetAuthCookies(w, accessToken, newRefreshToken)
-
-			if err != nil {
-				return unauthorizedApiError
-			}
-
-			return h(w, r, user)
+			return h(w, r, accessTokenUser)
 		}
-
-		accessTokenUser, err := utils.ParseUserToken(accessToken)
-
-		if err != nil {
-			if !errors.Is(err, jwt.ErrTokenExpired) {
-				return unauthorizedApiError
-			}
-			refreshTokenUser, accessToken, newRefreshToken, err := createNewAccessTokenAndRefreshToken(r)
-
-			if err != nil {
-				return unauthorizedApiError
-			}
-
-			utils.SetAuthCookies(w, accessToken, newRefreshToken)
-
-			accessTokenUser = refreshTokenUser
-		}
-
-		return h(w, r, accessTokenUser)
 	}
 }
 
@@ -91,10 +93,6 @@ func createNewAccessTokenAndRefreshToken(r *http.Request) (user *utils.JWTUser, 
 	}
 
 	return user, accessToken, refreshToken, nil
-}
-
-func NewAuthMiddleware() *AuthMiddleware {
-	return &AuthMiddleware{}
 }
 
 type HandlerWithUser = func(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error

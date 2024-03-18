@@ -13,24 +13,24 @@ import (
 
 func setupRoutes(
 	mux *mux.Router,
+	authMiddleware middlewares.AuthMiddleware,
 	userService *store.UserService,
 	friendshipService *store.FriendshipService,
-	v *validator.Validate,
-	authMiddleware *middlewares.AuthMiddleware,
 	notificationsWsService *ws.NotificationService,
+	v *validator.Validate,
 ) {
 	mux.HandleFunc("/healthcheck", utils.HandlerFunc(handlers.HandleHealthcheck())).Methods("GET")
 
 	mux.HandleFunc("/auth/register", utils.HandlerFunc(handlers.HandleRegisterUser(userService, v))).Methods(http.MethodPost)
 	mux.HandleFunc("/auth/login", utils.HandlerFunc(handlers.HandleLogin(userService, v))).Methods(http.MethodPost)
-	mux.HandleFunc("/auth/me", utils.HandlerFunc(authMiddleware.Use(handlers.HandleGetLoggedInUser()))).Methods(http.MethodGet)
+	mux.HandleFunc("/auth/me", utils.HandlerFunc(authMiddleware(handlers.HandleGetLoggedInUser()))).Methods(http.MethodGet)
 	mux.HandleFunc("/auth/logout", utils.HandlerFunc(handlers.HandleLogoutUser())).Methods(http.MethodPost)
 
-	mux.HandleFunc("/friends", utils.HandlerFunc(authMiddleware.Use(handlers.HandleSendFriendRequest(userService, friendshipService, v)))).Methods(http.MethodPost)
-	mux.HandleFunc("/friends/requests", utils.HandlerFunc(authMiddleware.Use(handlers.HandleGetFriendRequests(friendshipService)))).Methods(http.MethodGet)
-	mux.HandleFunc("/friends/requests/{requestId}/accept", utils.HandlerFunc(authMiddleware.Use(handlers.HandleAcceptFriendRequest(friendshipService)))).Methods(http.MethodPost)
-	mux.HandleFunc("/friends/requests/{requestId}/reject", utils.HandlerFunc(authMiddleware.Use(handlers.HandleRejectFriendRequest(friendshipService)))).Methods(http.MethodPost)
+	mux.HandleFunc("/friends", utils.HandlerFunc(authMiddleware(handlers.HandleSendFriendRequest(userService, friendshipService, v)))).Methods(http.MethodPost)
+	mux.HandleFunc("/friends/requests", utils.HandlerFunc(authMiddleware(handlers.HandleGetFriendRequests(friendshipService)))).Methods(http.MethodGet)
+	mux.HandleFunc("/friends/requests/{requestId}/accept", utils.HandlerFunc(authMiddleware(handlers.HandleAcceptFriendRequest(friendshipService)))).Methods(http.MethodPost)
+	mux.HandleFunc("/friends/requests/{requestId}/reject", utils.HandlerFunc(authMiddleware(handlers.HandleRejectFriendRequest(friendshipService)))).Methods(http.MethodPost)
 
-	mux.HandleFunc("/notifications", utils.HandlerFunc(authMiddleware.Use(handlers.HandleSubscribeNotifications(notificationsWsService)))).Methods(http.MethodGet)
-	mux.HandleFunc("/notifications", utils.HandlerFunc(authMiddleware.Use(handlers.HandleCreateNotification(notificationsWsService, v)))).Methods(http.MethodPost)
+	mux.HandleFunc("/notifications", utils.HandlerFunc(authMiddleware(handlers.HandleSubscribeNotifications(notificationsWsService)))).Methods(http.MethodGet)
+	mux.HandleFunc("/notifications", utils.HandlerFunc(authMiddleware(handlers.HandleCreateNotification(notificationsWsService, v)))).Methods(http.MethodPost)
 }

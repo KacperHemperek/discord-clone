@@ -279,7 +279,7 @@ func setupAuthMiddlewareTestWithTokens(t *testing.T, accessTokenExp, refreshToke
 	req.AddCookie(getTokenCookie(accessToken, utils.AccessTokenCookieName))
 	req.AddCookie(getTokenCookie(refreshToken, utils.RefreshTokenCookieName))
 
-	handler := utils.HandlerFunc(authMiddleware.Use(testHandler))
+	handler := utils.HandlerFunc(authMiddleware(testHandler))
 
 	handler.ServeHTTP(rr, req)
 
@@ -306,7 +306,7 @@ func setupAuthMiddlewareTestWithoutAccessToken(t *testing.T, refreshTokenExp tim
 
 	req.AddCookie(getTokenCookie(refreshToken, utils.RefreshTokenCookieName))
 
-	handler := utils.HandlerFunc(authMiddleware.Use(testHandler))
+	handler := utils.HandlerFunc(authMiddleware(testHandler))
 
 	handler.ServeHTTP(rr, req)
 
@@ -323,7 +323,7 @@ func setupAuthMiddlewareTestWithoutTokens(t *testing.T) (rr *httptest.ResponseRe
 		return nil, err
 	}
 
-	handler := utils.HandlerFunc(authMiddleware.Use(testHandler))
+	handler := utils.HandlerFunc(authMiddleware(testHandler))
 
 	handler.ServeHTTP(rr, req)
 
