@@ -11,15 +11,15 @@ import (
 )
 
 type subscribeNotificationsHandler struct {
-	wsNotificationService *ws.NotificationService
+	wsNotificationService ws.NotificationServiceInterface
 }
 
 type createNotificationHandler struct {
-	wsNotificationService *ws.NotificationService
+	wsNotificationService ws.NotificationServiceInterface
 	validate              *validator.Validate
 }
 
-func HandleSubscribeNotifications(notificationWsService *ws.NotificationService) middlewares.HandlerWithUser {
+func HandleSubscribeNotifications(notificationWsService ws.NotificationServiceInterface) middlewares.HandlerWithUser {
 	handler := &subscribeNotificationsHandler{
 		wsNotificationService: notificationWsService,
 	}

@@ -95,7 +95,7 @@ func HandleSendFriendRequest(
 	}
 }
 
-func HandleGetFriendRequests(friendshipService *store.FriendshipService) middlewares.HandlerWithUser {
+func HandleGetFriendRequests(friendshipService store.FriendshipServiceInterface) middlewares.HandlerWithUser {
 	return func(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
 		friendRequests, err := friendshipService.GetUsersFriendRequests(user.ID)
 
@@ -107,7 +107,7 @@ func HandleGetFriendRequests(friendshipService *store.FriendshipService) middlew
 	}
 }
 
-func HandleAcceptFriendRequest(friendshipService *store.FriendshipService) middlewares.HandlerWithUser {
+func HandleAcceptFriendRequest(friendshipService store.FriendshipServiceInterface) middlewares.HandlerWithUser {
 	return func(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
 		requestId, err := utils.GetIntParam(r, "requestId")
 		if err != nil {
@@ -146,7 +146,7 @@ func HandleAcceptFriendRequest(friendshipService *store.FriendshipService) middl
 	}
 }
 
-func HandleRejectFriendRequest(friendshipService *store.FriendshipService) middlewares.HandlerWithUser {
+func HandleRejectFriendRequest(friendshipService store.FriendshipServiceInterface) middlewares.HandlerWithUser {
 	return func(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
 		requestId, err := utils.GetIntParam(r, "requestId")
 		if err != nil {

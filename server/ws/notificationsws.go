@@ -9,6 +9,12 @@ type NotificationService struct {
 	conns map[int]*websocket.Conn
 }
 
+type NotificationServiceInterface interface {
+	AddConn(userId int, conn *websocket.Conn)
+	RemoveConn(userId int)
+	Notify(userId int, msg string) error
+}
+
 func (s *NotificationService) AddConn(userId int, conn *websocket.Conn) {
 	s.conns[userId] = conn
 }
