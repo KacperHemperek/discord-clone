@@ -10,10 +10,9 @@ import {
   DialogTrigger,
 } from "@radix-ui/react-dialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CommonResponsesTypes, FriendsTypes } from "@discord-clone-v2/types";
 
 import DCButton from "../Button";
-import { api } from "../../api";
+import { api, QueryKeys } from "../../api";
 import { ToastDuration, useToast } from "../../hooks/useToast";
 import { ClientError } from "../../utils/clientError";
 
@@ -43,10 +42,14 @@ export default function RemoveFriendDialog({
           } as FriendsTypes.RemoveFriendBodyType),
         },
       ),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast.success(data.message, { duration: ToastDuration.short });
-      queryClient.invalidateQueries({ queryKey: ["all-friends"] });
-      queryClient.invalidateQueries({ queryKey: ["chats"] });
+      await queryClient.invalidateQueries({
+        queryKey: QueryKeys.getAllFriends(),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: QueryKeys.getAllChats(),
+      });
       setOpen(false);
     },
     onError: (error: ClientError) => {

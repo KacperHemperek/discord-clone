@@ -2,7 +2,7 @@ import React from "react";
 import FriendRequestItem from "@app/components/friends/FriendRequestItem";
 import { Container } from "@app/components/friends/FriendPageContainer";
 import DCSearchBar from "@app/components/SearchBar";
-import { usePendingFriendRequests } from "@app/hooks/reactQuery/usePendingFriendRequests.ts";
+import { usePendingFriendRequests } from "@app/api";
 import { LoadingSpinner } from "@app/components/LoadingSpinner.tsx";
 import { AlertTriangle } from "lucide-react";
 

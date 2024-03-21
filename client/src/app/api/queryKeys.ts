@@ -6,4 +6,12 @@ export class QueryKeys {
   static getLoggedInUser() {
     return ["user"];
   }
+
+  static getAllFriends() {
+    return ["all-friends"];
+  }
+
+  static getAllChats() {
+    return ["chats"];
+  }
 }

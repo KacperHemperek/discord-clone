@@ -6,9 +6,8 @@ import {
   PopoverPortal,
 } from "@radix-ui/react-popover";
 import { Checkbox, CheckboxIndicator } from "@radix-ui/react-checkbox";
-import { ChatsTypes } from "@discord-clone-v2/types";
 import { CheckIcon, PlusIcon } from "lucide-react";
-import { useAllFriends } from "../../hooks/reactQuery/useAllFriends";
+import { QueryKeys, useAllFriends } from "@app/api";
 import DCButton from "../Button";
 import { cn } from "../../utils/cn";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,7 +16,6 @@ import { useToast } from "../../hooks/useToast";
 
 function UserCheckboxItem({
   username,
-  avatar,
   onCheck,
   selected,
 }: {
@@ -68,11 +66,13 @@ export default function CreateGroupChat() {
           userIds: selectedIds,
         } as ChatsTypes.CreateChatWithUsersBodyType),
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
       setSelectedIds([]);
       setOpen(false);
       toast.success("Chat created successfully!");
-      queryClient.invalidateQueries({ queryKey: ["chats"] });
+      await queryClient.invalidateQueries({
+        queryKey: QueryKeys.getAllChats(),
+      });
     },
     onError: (error) => {
       toast.error(error.message);

@@ -14,6 +14,10 @@ export type FriendRequest = {
   user: UserResponse;
 };
 
-export type PendingFriendRequestsResponse = {
+export type PendingFriendsResponse = {
   requests: Array<FriendRequest>;
+};
+
+export type AllFriendResponse = {
+  friends: Array<UserResponse>;
 };

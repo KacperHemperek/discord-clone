@@ -2,22 +2,19 @@ import React from "react";
 import { MessageCircle, Trash } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChatsTypes } from "@discord-clone-v2/types";
 import { ChatTypes } from "../../types/chats.ts";
 import FriendListItemButton from "./FriendItemButton";
 import RemoveFriendDialog from "./RemoveFriendDialog";
-import { api } from "../../api";
+import { api, QueryKeys } from "../../api";
 import { ClientError } from "../../utils/clientError";
 import { useToast } from "../../hooks/useToast";
 
 export default function FriendListItem({
   id,
   username,
-  avatar,
 }: {
-  id: string;
+  id: number;
   username: string;
-  avatar?: string;
 }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -35,9 +32,11 @@ export default function FriendListItem({
     onError: (error: ClientError) => {
       toast.error(error.message);
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       const { chatId } = data;
-      queryClient.invalidateQueries({ queryKey: ["chats"] });
+      await queryClient.invalidateQueries({
+        queryKey: QueryKeys.getAllChats(),
+      });
       toast.success("Chat created successfully!");
       navigate(`/home/chats/${chatId}`);
     },
