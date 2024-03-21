@@ -11,7 +11,11 @@ import (
 	"time"
 )
 
-func HandleSendFriendRequest(userService *store.UserService, friendshipService *store.FriendshipService, validate *validator.Validate) middlewares.HandlerWithUser {
+func HandleSendFriendRequest(
+	userService store.UserServiceInterface,
+	friendshipService store.FriendshipServiceInterface,
+	validate *validator.Validate,
+) middlewares.HandlerWithUser {
 
 	return func(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
 		body := &SendFriendRequestBody{}

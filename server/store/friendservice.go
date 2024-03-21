@@ -14,6 +14,17 @@ type FriendshipService struct {
 	db *Database
 }
 
+type FriendshipServiceInterface interface {
+	SendFriendRequest(inviterId, friendId int) error
+	GetUsersFriendRequests(userId int) ([]*models.FriendRequest, error)
+	GetFriendshipByUsers(userOneID, userTwoID int) (*models.Friendship, error)
+	GetFriendshipById(requestId int) (*models.Friendship, error)
+	AcceptFriendRequest(requestId int) error
+	RejectFriendRequest(requestId int) error
+	MakeFriendshipPending(requestId int) error
+	DeleteRequestAndSendNew(requestId, inviterId, friendId int) error
+}
+
 func (s *FriendshipService) SendFriendRequest(inviterId, friendId int) error {
 	defer utils.LogServiceCall("FriendshipService", "SendFriendRequest", time.Now())
 	ctx := context.Background()

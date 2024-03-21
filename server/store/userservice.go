@@ -13,6 +13,11 @@ type UserService struct {
 	db *Database
 }
 
+type UserServiceInterface interface {
+	FindUserByEmail(email string) (*models.User, error)
+	CreateUser(username, password, email string) (*models.User, error)
+}
+
 func (s *UserService) FindUserByEmail(email string) (*models.User, error) {
 	defer utils.LogServiceCall("UserService", "FindUserByEmail", time.Now())
 	rows, err := s.db.Query(
