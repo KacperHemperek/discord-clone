@@ -247,8 +247,8 @@ func TestAuthMiddleware_RefreshTokenAndAccessTokenAreMissing(t *testing.T) {
 	}
 }
 
-func testHandler(w http.ResponseWriter, _ *http.Request, user *utils.JWTUser) error {
-	return utils.WriteJson(w, http.StatusOK, user)
+func testHandler(w http.ResponseWriter, _ *http.Request, c *utils.Context) error {
+	return utils.WriteJson(w, http.StatusOK, c.User)
 }
 
 func setupAuthMiddlewareTestWithTokens(t *testing.T, accessTokenExp, refreshTokenExp time.Time) (rr *httptest.ResponseRecorder, req *http.Request, err error) {
