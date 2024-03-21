@@ -4,32 +4,51 @@ import { Container } from "@app/components/friends/FriendPageContainer";
 import DCSearchBar from "@app/components/SearchBar";
 import { usePendingFriendRequests } from "@app/hooks/reactQuery/usePendingFriendRequests.ts";
 import { LoadingSpinner } from "@app/components/LoadingSpinner.tsx";
+import { AlertTriangle } from "lucide-react";
 
 export default function FriendRequestsPage() {
-  const { data: requests, isLoading, error } = usePendingFriendRequests();
-
   const [search, setSearch] = React.useState("");
 
-  const filteredRequests =
-    requests?.filter((request) =>
-      request.user.username.toLowerCase().includes(search.toLowerCase()),
-    ) ?? [];
+  return (
+    <>
+      <Container className="pt-4">
+        <DCSearchBar value={search} setValue={setSearch} />
+      </Container>
+      <FriendRequestList searchQuery={search} />
+    </>
+  );
+}
+
+function FriendRequestList({ searchQuery }: { searchQuery: string }) {
+  const { data: requests, isLoading, error } = usePendingFriendRequests();
 
   if (error) {
     return (
-      <Container className="flex items-center justify-center h-full">
-        <h1 className="text-dc-neutral-300">Error fetching friend requests</h1>
+      <Container className="flex flex-col items-center pt-20">
+        <AlertTriangle size={48} className="text-dc-red-500 mb-2" />
+        <h1 className="text-xl text-dc-red-500">
+          Error getting your friend requests
+        </h1>
+        <p className="text-dc-neutral-300">{error.message}</p>
       </Container>
     );
   }
 
   if (isLoading) {
     return (
-      <Container className="flex items-center justify-center h-full">
-        <LoadingSpinner />
+      <Container className="flex items-center p-20 flex-col">
+        <LoadingSpinner size="lg" className="mb-2" />
+        <h1 className="text-dc-neutral-300 text-xl">
+          Loading your friend requests...
+        </h1>
       </Container>
     );
   }
+
+  const filteredRequests =
+    requests?.filter((request) =>
+      request.user.username.toLowerCase().includes(searchQuery.toLowerCase()),
+    ) ?? [];
 
   if (!filteredRequests.length) {
     return (
@@ -41,9 +60,6 @@ export default function FriendRequestsPage() {
 
   return (
     <>
-      <Container className="pt-4">
-        <DCSearchBar value={search} setValue={setSearch} />
-      </Container>
       <Container className="py-4">
         <h1 className="uppercase text-xs font-semibold tracking-[0.02em] text-dc-neutral-300">
           Waiting - {filteredRequests.length}
