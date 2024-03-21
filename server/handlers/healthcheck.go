@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-func HandleHealthcheck() utils.Handler {
-	return func(w http.ResponseWriter, r *http.Request) error {
+func HandleHealthcheck() utils.APIHandler {
+	return func(w http.ResponseWriter, r *http.Request, _ *utils.Context) error {
 		return utils.WriteJson(w, http.StatusOK, utils.JSON{"status": "ok"})
 	}
 }

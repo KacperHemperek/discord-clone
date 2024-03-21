@@ -13,11 +13,11 @@ var unauthorizedApiError = &utils.ApiError{
 	Message: "Unauthorized",
 }
 
-type AuthMiddleware = func(h HandlerWithUser) utils.Handler
+type AuthMiddleware = func(h utils.APIHandler) utils.APIHandler
 
-func NewAuthMiddleware() func(h HandlerWithUser) utils.Handler {
-	return func(h HandlerWithUser) utils.Handler {
-		return func(w http.ResponseWriter, r *http.Request) error {
+func NewAuthMiddleware() AuthMiddleware {
+	return func(h utils.APIHandler) utils.APIHandler {
+		return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
 			accessToken, err := utils.GetAccessToken(r)
 			if err != nil {
 				if !errors.Is(err, http.ErrNoCookie) {
@@ -35,7 +35,9 @@ func NewAuthMiddleware() func(h HandlerWithUser) utils.Handler {
 					return unauthorizedApiError
 				}
 
-				return h(w, r, user)
+				c.User = user
+
+				return h(w, r, c)
 			}
 
 			accessTokenUser, err := utils.ParseUserToken(accessToken)
@@ -55,9 +57,12 @@ func NewAuthMiddleware() func(h HandlerWithUser) utils.Handler {
 				accessTokenUser = refreshTokenUser
 			}
 
-			return h(w, r, accessTokenUser)
+			c.User = accessTokenUser
+
+			return h(w, r, c)
 		}
 	}
+
 }
 
 func createNewAccessTokenAndRefreshToken(r *http.Request) (user *utils.JWTUser, accessToken, refreshToken string, err error) {
@@ -94,5 +99,3 @@ func createNewAccessTokenAndRefreshToken(r *http.Request) (user *utils.JWTUser, 
 
 	return user, accessToken, refreshToken, nil
 }
-
-type HandlerWithUser = func(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error

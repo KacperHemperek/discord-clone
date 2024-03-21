@@ -23,10 +23,11 @@ func ReadAndValidateBody(r *http.Request, v interface{}, validate *validator.Val
 	return validate.Struct(v)
 }
 
-func HandlerFunc(handler Handler) http.HandlerFunc {
+func HandlerFunc(handler APIHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer logRequest(r, time.Now())
-		handlerErr := handler(w, r)
+
+		handlerErr := handler(w, r, &Context{})
 		if handlerErr != nil {
 			var err *ApiError
 			if errors.As(handlerErr, &err) {
@@ -81,6 +82,10 @@ func GetIntParam(r *http.Request, param string) (int, error) {
 	return number, nil
 }
 
-type Handler func(w http.ResponseWriter, r *http.Request) error
+type APIHandler func(w http.ResponseWriter, r *http.Request, c *Context) error
+
+type Context struct {
+	User *JWTUser
+}
 
 type JSON map[string]interface{}
