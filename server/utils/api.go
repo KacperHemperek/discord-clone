@@ -29,22 +29,22 @@ func HandlerFunc(handler APIHandler) http.HandlerFunc {
 
 		handlerErr := handler(w, r, &Context{})
 		if handlerErr != nil {
-			var err *ApiError
+			var err *APIError
 			if errors.As(handlerErr, &err) {
 				logApiError(err, r)
 				WriteJson(w, err.Code, err)
 				return
 			}
 			logError(handlerErr, r)
-			WriteJson(w, http.StatusInternalServerError, &ApiError{
+			WriteJson(w, http.StatusInternalServerError, &APIError{
 				Code:    http.StatusInternalServerError,
-				Message: "Internal Server ApiError test restart",
+				Message: "Internal Server Error",
 			})
 		}
 	}
 }
 
-func logApiError(err *ApiError, r *http.Request) {
+func logApiError(err *APIError, r *http.Request) {
 	fmt.Printf("ERROR %s [%s]: %s\n", r.URL, r.Method, err.Error())
 	if err.Cause != nil {
 		fmt.Printf("CAUSE: %s\n", err.Cause.Error())

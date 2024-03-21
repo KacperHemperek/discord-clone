@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-var unauthorizedApiError = &utils.ApiError{
+var unauthorizedApiError = &utils.APIError{
 	Code:    http.StatusUnauthorized,
 	Message: "Unauthorized",
 }

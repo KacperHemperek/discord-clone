@@ -26,33 +26,33 @@ func HandleRegisterUser(userService *store.UserService, validate *validator.Vali
 		body := &RegisterUserRequest{}
 
 		if err := utils.ReadBody(r, body); err != nil {
-			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Invalid request body", Cause: err}
+			return &utils.APIError{Code: http.StatusBadRequest, Message: "Invalid request body", Cause: err}
 		}
 
 		if err := validate.Struct(body); err != nil {
-			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Invalid request body", Cause: err}
+			return &utils.APIError{Code: http.StatusBadRequest, Message: "Invalid request body", Cause: err}
 		}
 
 		if body.Password != body.ConfirmPassword {
-			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Passwords do not match", Cause: nil}
+			return &utils.APIError{Code: http.StatusBadRequest, Message: "Passwords do not match", Cause: nil}
 		}
 
 		existingUser, err := userService.FindUserByEmail(body.Email)
 
 		if err != nil {
 			if !errors.Is(err, store.UserNotFoundError) {
-				return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when finding user", Cause: err}
+				return &utils.APIError{Code: http.StatusInternalServerError, Message: "Unknown error when finding user", Cause: err}
 			}
 		}
 
 		if existingUser != nil {
-			return &utils.ApiError{Code: http.StatusConflict, Message: "User with this email already exists", Cause: nil}
+			return &utils.APIError{Code: http.StatusConflict, Message: "User with this email already exists", Cause: nil}
 		}
 
 		hashedPassword, err := utils.EncryptPassword(body.Password)
 
 		if err != nil {
-			return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when creating a user", Cause: err}
+			return &utils.APIError{Code: http.StatusInternalServerError, Message: "Unknown error when creating a user", Cause: err}
 		}
 
 		body.Password = hashedPassword
@@ -60,7 +60,7 @@ func HandleRegisterUser(userService *store.UserService, validate *validator.Vali
 		user, err := userService.CreateUser(body.Username, body.Password, body.Email)
 
 		if err != nil {
-			return &utils.ApiError{Code: http.StatusInternalServerError, Message: "Unknown error when creating user", Cause: err}
+			return &utils.APIError{Code: http.StatusInternalServerError, Message: "Unknown error when creating user", Cause: err}
 		}
 
 		accessToken, accessTokenError := utils.NewAccessToken(&utils.NewTokenProps{
@@ -96,12 +96,12 @@ func HandleRegisterUser(userService *store.UserService, validate *validator.Vali
 func HandleLogin(userService *store.UserService, validate *validator.Validate) utils.APIHandler {
 
 	return func(w http.ResponseWriter, r *http.Request, _ *utils.Context) error {
-		InvalidRequestApiError := &utils.ApiError{
+		InvalidRequestApiError := &utils.APIError{
 			Code:    http.StatusBadRequest,
 			Message: "Invalid request body",
 		}
 
-		InvalidUserOrPasswordApiError := &utils.ApiError{
+		InvalidUserOrPasswordApiError := &utils.APIError{
 			Code:    http.StatusUnauthorized,
 			Message: "Invalid email or password",
 		}
