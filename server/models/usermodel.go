@@ -5,6 +5,5 @@ type User struct {
 	Password string `json:"-"`
 	Email    string `json:"email"`
 	Active   bool   `json:"active"`
-
-	basemodel
+	Base
 }

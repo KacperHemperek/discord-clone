@@ -21,3 +21,8 @@ type FriendRequest struct {
 	RequestedAt     time.Time `json:"requestedAt"`
 	StatusChangedAt NullTime  `json:"statusChangedAt"`
 }
+
+type Friend struct {
+	AcceptedAt time.Time `json:"acceptedAt"`
+	User
+}

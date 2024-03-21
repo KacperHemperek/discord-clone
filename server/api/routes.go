@@ -26,6 +26,7 @@ func setupRoutes(
 	mux.HandleFunc("/auth/me", utils.HandlerFunc(authMiddleware(handlers.HandleGetLoggedInUser()))).Methods(http.MethodGet)
 	mux.HandleFunc("/auth/logout", utils.HandlerFunc(handlers.HandleLogoutUser())).Methods(http.MethodPost)
 
+	mux.HandleFunc("/friends", utils.HandlerFunc(authMiddleware(handlers.HandleGetFriends(friendshipService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/friends", utils.HandlerFunc(authMiddleware(handlers.HandleSendFriendRequest(userService, friendshipService, v)))).Methods(http.MethodPost)
 	mux.HandleFunc("/friends/requests", utils.HandlerFunc(authMiddleware(handlers.HandleGetFriendRequests(friendshipService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/friends/requests/{requestId}/accept", utils.HandlerFunc(authMiddleware(handlers.HandleAcceptFriendRequest(friendshipService)))).Methods(http.MethodPost)

@@ -107,6 +107,18 @@ func HandleGetFriendRequests(friendshipService store.FriendshipServiceInterface)
 	}
 }
 
+func HandleGetFriends(friendshipService store.FriendshipServiceInterface) middlewares.HandlerWithUser {
+	return func(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
+		users, err := friendshipService.GetFriendsByUserID(user.ID)
+
+		if err != nil {
+			return err
+		}
+
+		return utils.WriteJson(w, http.StatusOK, &utils.JSON{"friends": users})
+	}
+}
+
 func HandleAcceptFriendRequest(friendshipService store.FriendshipServiceInterface) middlewares.HandlerWithUser {
 	return func(w http.ResponseWriter, r *http.Request, user *utils.JWTUser) error {
 		requestId, err := utils.GetIntParam(r, "requestId")
@@ -114,7 +126,7 @@ func HandleAcceptFriendRequest(friendshipService store.FriendshipServiceInterfac
 			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Invalid request", Cause: err}
 		}
 
-		friendship, err := friendshipService.GetFriendshipById(requestId)
+		friendship, err := friendshipService.GetFriendshipByID(requestId)
 
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -152,7 +164,7 @@ func HandleRejectFriendRequest(friendshipService store.FriendshipServiceInterfac
 		if err != nil {
 			return &utils.ApiError{Code: http.StatusBadRequest, Message: "Invalid request", Cause: err}
 		}
-		friendshipToReject, findFriendshipError := friendshipService.GetFriendshipById(requestId)
+		friendshipToReject, findFriendshipError := friendshipService.GetFriendshipByID(requestId)
 		if findFriendshipError != nil {
 			if errors.Is(findFriendshipError, sql.ErrNoRows) {
 				return &utils.ApiError{Code: http.StatusNotFound, Message: "Friend request not found", Cause: findFriendshipError}

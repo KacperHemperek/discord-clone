@@ -31,6 +31,27 @@ func scanUser(rows Scanner) (*models.User, error) {
 	return user, nil
 }
 
+func scanFriend(rows Scanner) (*models.Friend, error) {
+	friend := &models.Friend{}
+
+	err := rows.Scan(
+		&friend.ID,
+		&friend.Username,
+		&friend.Email,
+		&friend.Active,
+		&friend.Password,
+		&friend.CreatedAt,
+		&friend.UpdatedAt,
+		&friend.AcceptedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return friend, nil
+}
+
 // Scans friendship from the given Scanner, this function accepts sql.Rows and sql.Row as Scanner
 // and returns a friendship or an error if the scan fails
 func scanFriendship(row Scanner) (*models.Friendship, error) {
