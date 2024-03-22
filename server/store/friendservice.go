@@ -286,7 +286,6 @@ func (s *FriendshipService) GetFriendsByUserID(userID int) ([]*models.User, erro
 		}
 	}
 }
-
 func NewFriendshipService(db *Database) *FriendshipService {
 	return &FriendshipService{db: db}
 }

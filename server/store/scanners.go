@@ -101,3 +101,21 @@ func scanFriendRequest(s Scanner) (*models.FriendRequest, error) {
 
 	return friendRequest, nil
 }
+
+func scanChat(scanner Scanner) (*models.Chat, error) {
+	chat := &models.Chat{}
+
+	err := scanner.Scan(
+		&chat.ID,
+		&chat.Name,
+		&chat.Type,
+		&chat.CreatedAt,
+		&chat.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return chat, nil
+}

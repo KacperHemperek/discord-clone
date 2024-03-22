@@ -16,6 +16,7 @@ func setupRoutes(
 	authMiddleware middlewares.AuthMiddleware,
 	userService *store.UserService,
 	friendshipService *store.FriendshipService,
+	chatService *store.ChatService,
 	notificationsWsService *ws.NotificationService,
 	v *validator.Validate,
 ) {
@@ -31,6 +32,9 @@ func setupRoutes(
 	mux.HandleFunc("/friends/requests", utils.HandlerFunc(authMiddleware(handlers.HandleGetFriendRequests(friendshipService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/friends/requests/{requestId}/accept", utils.HandlerFunc(authMiddleware(handlers.HandleAcceptFriendRequest(friendshipService)))).Methods(http.MethodPost)
 	mux.HandleFunc("/friends/requests/{requestId}/reject", utils.HandlerFunc(authMiddleware(handlers.HandleRejectFriendRequest(friendshipService)))).Methods(http.MethodPost)
+
+	mux.HandleFunc("/chats/private", utils.HandlerFunc(authMiddleware(handlers.HandleCreatePrivateChat(chatService, friendshipService, v)))).Methods(http.MethodPost)
+	mux.HandleFunc("/chats/group", utils.HandlerFunc(authMiddleware(handlers.HandleCreateGroupChat(chatService, v)))).Methods(http.MethodPost)
 
 	mux.HandleFunc("/notifications", utils.HandlerFunc(authMiddleware(handlers.HandleSubscribeNotifications(notificationsWsService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/notifications", utils.HandlerFunc(authMiddleware(handlers.HandleCreateNotification(notificationsWsService, v)))).Methods(http.MethodPost)

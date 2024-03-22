@@ -30,6 +30,7 @@ func (s *Server) Start() {
 	// register all store services
 	userService := store.NewUserService(db)
 	friendshipService := store.NewFriendshipService(db)
+	chatService := store.NewChatService(db)
 
 	// register all ws services
 	notificationsWsService := ws.NewNotificationService()
@@ -37,7 +38,7 @@ func (s *Server) Start() {
 	// register all middlewares
 	authMiddleware := middlewares.NewAuthMiddleware()
 
-	setupRoutes(router, authMiddleware, userService, friendshipService, notificationsWsService, v)
+	setupRoutes(router, authMiddleware, userService, friendshipService, chatService, notificationsWsService, v)
 
 	portStr := fmt.Sprintf(":%d", s.port)
 	fmt.Printf("Server is running on port %d\n", s.port)
