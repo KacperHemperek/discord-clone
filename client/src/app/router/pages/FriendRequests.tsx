@@ -4,7 +4,9 @@ import { Container } from "@app/components/friends/FriendPageContainer";
 import DCSearchBar from "@app/components/SearchBar";
 import { usePendingFriendRequests } from "@app/api";
 import { LoadingSpinner } from "@app/components/LoadingSpinner.tsx";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, UserPlus, UsersIcon } from "lucide-react";
+import Button from "@app/components/Button.tsx";
+import { Link } from "react-router-dom";
 
 export default function FriendRequestsPage() {
   const [search, setSearch] = React.useState("");
@@ -20,7 +22,12 @@ export default function FriendRequestsPage() {
 }
 
 function FriendRequestList({ searchQuery }: { searchQuery: string }) {
-  const { data: requests, isLoading, error } = usePendingFriendRequests();
+  const {
+    data: requests,
+    isLoading,
+    error,
+    showLoading,
+  } = usePendingFriendRequests();
 
   if (error) {
     return (
@@ -34,7 +41,7 @@ function FriendRequestList({ searchQuery }: { searchQuery: string }) {
     );
   }
 
-  if (isLoading) {
+  if (isLoading && showLoading) {
     return (
       <Container className="flex items-center p-20 flex-col">
         <LoadingSpinner size="lg" className="mb-2" />
@@ -52,8 +59,20 @@ function FriendRequestList({ searchQuery }: { searchQuery: string }) {
 
   if (!filteredRequests.length) {
     return (
-      <Container className="flex items-center justify-center h-full">
-        <h1 className="text-dc-neutral-300">No friend requests</h1>
+      <Container className="flex items-center p-20 h-full flex-col max-w-md mx-auto text-center">
+        <UsersIcon size={48} className="text-dc-neutral-300" />
+        <h1 className="text-dc-neutral-300 text-xl font-medium">
+          No friend requests
+        </h1>
+        <p className="text-dc-neutral-300 pb-4">
+          Waiting for a friend request that is not arriving? You can just send
+          it yourself here!
+        </p>
+        <Link to="/home/friends/invite">
+          <Button variant="success" className="flex gap-2 items-center">
+            <span>Add friend</span> <UserPlus size={20} />
+          </Button>
+        </Link>
       </Container>
     );
   }
