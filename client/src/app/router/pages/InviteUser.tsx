@@ -64,10 +64,11 @@ export default function InviteUserPage() {
       </p>
       <form
         className={cn(
-          "flex bg-dc-neutral-1000 py-2 px-3 items-center rounded-md focus-within:ring-2 ring-sky-500",
+          "flex bg-dc-neutral-1000 py-2 px-3 items-center rounded-md focus-within:ring-2 ring-sky-500 cursor-text",
           form.formState.errors.email && "ring-dc-red-500",
           showSuccess && "ring-dc-green-500",
         )}
+        onClick={() => form.setFocus("email")}
         onSubmit={form.handleSubmit(sendFriendRequest)}
       >
         <input
@@ -83,8 +84,9 @@ export default function InviteUserPage() {
         <button
           className="px-3 py-1.5 text-sm rounded-sm bg-dc-purple-500 font-semibold"
           type="submit"
+          onClick={(e) => e.stopPropagation()}
         >
-          Send friend invite request
+          Send friend invite
         </button>
       </form>
       {showSuccess && (
