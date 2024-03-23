@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import FriendListItemButton from "./FriendItemButton";
 import RemoveFriendDialog from "./RemoveFriendDialog";
-import { api, CreateChatResponse, QueryKeys } from "../../api";
+import { api, CreateChatResponse, QueryKeys } from "@app/api";
 import { ClientError } from "../../utils/clientError";
 import { useToast } from "../../hooks/useToast";
 
@@ -20,7 +20,7 @@ export default function FriendListItem({
   const toast = useToast();
   const [open, setOpen] = React.useState(false);
 
-  const { mutate, isPending } = useMutation({
+  const { mutate: createChatAndRedirect, isPending } = useMutation({
     mutationFn: async () =>
       api.post<CreateChatResponse>("/chats/private", {
         body: JSON.stringify({
@@ -42,7 +42,7 @@ export default function FriendListItem({
 
   return (
     <div
-      onClick={() => mutate()}
+      onClick={() => !isPending && createChatAndRedirect()}
       className="relative flex w-full group cursor-pointer"
     >
       {/* Top Border */}
@@ -57,7 +57,12 @@ export default function FriendListItem({
           <FriendListItemButton
             disabled={isPending}
             icon={<MessageCircle size={20} />}
-            onClick={() => mutate()}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isPending) {
+                createChatAndRedirect();
+              }
+            }}
           />
           <RemoveFriendDialog
             open={open}
