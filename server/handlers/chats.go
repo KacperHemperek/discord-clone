@@ -10,7 +10,7 @@ import (
 )
 
 type CreateChatRequestBody struct {
-	UserID int `json:"userId" validation:"required,gt=1"`
+	UserID int `json:"userId" validation:"required,gte=1"`
 }
 
 func HandleCreatePrivateChat(
