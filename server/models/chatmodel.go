@@ -14,3 +14,8 @@ type UserToChat struct {
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
+
+type ChatWithMembers struct {
+	Members []*User `json:"members"`
+	Chat
+}

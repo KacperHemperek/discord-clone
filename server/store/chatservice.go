@@ -14,6 +14,7 @@ type ChatService struct {
 type ChatServiceInterface interface {
 	GetPrivateChatByUserIDs(int, int) (*models.Chat, error)
 	CreatePrivateChatWithUsers(int, int) (*models.Chat, error)
+	GetUsersChatsWithMembers(userID int) ([]*models.ChatWithMembers, error)
 }
 
 func (s *ChatService) GetPrivateChatByUserIDs(userOneID, userTwoID int) (*models.Chat, error) {
@@ -81,6 +82,50 @@ func (s *ChatService) CreatePrivateChatWithUsers(userOneID, userTwoID int) (*mod
 		return nil, err
 	}
 	return chat, nil
+}
+
+func (s *ChatService) GetUsersChatsWithMembers(userID int) ([]*models.ChatWithMembers, error) {
+	rows, err := s.db.Query(
+		"SELECT chats.id, chats.name, chats.type, chats.created_at, chats.updated_at FROM chats JOIN chat_to_user member on user_id=$1 WHERE chats.id = member.chat_id;",
+		userID,
+	)
+	if err != nil {
+		return make([]*models.ChatWithMembers, 0), nil
+	}
+	chats := make([]*models.Chat, 0)
+	for rows.Next() {
+		chat, err := scanChat(rows)
+
+		if err != nil {
+			return make([]*models.ChatWithMembers, 0), err
+		}
+		chats = append(chats, chat)
+	}
+	result := make([]*models.ChatWithMembers, 0)
+	for _, chat := range chats {
+		members := make([]*models.User, 0)
+		rows, err := s.db.Query(
+			"SELECT users.id, users.username, users.email, users.active, users.password, users.created_at, users.updated_at FROM users JOIN chat_to_user member on member.chat_id = $1 WHERE users.id = member.user_id",
+			chat.ID,
+		)
+		if err != nil {
+			return make([]*models.ChatWithMembers, 0), err
+		}
+		for rows.Next() {
+			member, err := scanUser(rows)
+			if err != nil {
+				return make([]*models.ChatWithMembers, 0), err
+			}
+			members = append(members, member)
+		}
+		chatWithMembers := &models.ChatWithMembers{
+			Members: members,
+			Chat:    *chat,
+		}
+
+		result = append(result, chatWithMembers)
+	}
+	return result, nil
 }
 
 func NewChatService(db *Database) *ChatService {

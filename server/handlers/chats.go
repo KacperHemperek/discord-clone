@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/go-playground/validator/v10"
+	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
 	"net/http"
@@ -83,5 +84,33 @@ func HandleCreateGroupChat(
 			Message: "Not yet implemented",
 			Code:    http.StatusNotImplemented,
 		}
+	}
+}
+
+func HandleGetUsersChats(
+	chatService store.ChatServiceInterface,
+) utils.APIHandler {
+	type response struct {
+		Chats []*models.ChatWithMembers `json:"chats"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+		chats, err := chatService.GetUsersChatsWithMembers(c.User.ID)
+		if err != nil {
+			return err
+		}
+		for _, chat := range chats {
+			if chat.Type == "private" {
+				var otherMember *models.User
+				for _, m := range chat.Members {
+					if m.ID != c.User.ID {
+						otherMember = m
+						break
+					}
+				}
+				chat.Name = otherMember.Username
+			}
+		}
+		return utils.WriteJson(w, http.StatusOK, &response{Chats: chats})
 	}
 }

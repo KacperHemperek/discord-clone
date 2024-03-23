@@ -33,6 +33,7 @@ func setupRoutes(
 	mux.HandleFunc("/friends/requests/{requestId}/accept", utils.HandlerFunc(authMiddleware(handlers.HandleAcceptFriendRequest(friendshipService)))).Methods(http.MethodPost)
 	mux.HandleFunc("/friends/requests/{requestId}/reject", utils.HandlerFunc(authMiddleware(handlers.HandleRejectFriendRequest(friendshipService)))).Methods(http.MethodPost)
 
+	mux.HandleFunc("/chats", utils.HandlerFunc(authMiddleware(handlers.HandleGetUsersChats(chatService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/chats/private", utils.HandlerFunc(authMiddleware(handlers.HandleCreatePrivateChat(chatService, friendshipService, v)))).Methods(http.MethodPost)
 	mux.HandleFunc("/chats/group", utils.HandlerFunc(authMiddleware(handlers.HandleCreateGroupChat(chatService, v)))).Methods(http.MethodPost)
 
