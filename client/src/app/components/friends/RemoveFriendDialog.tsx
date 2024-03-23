@@ -23,7 +23,7 @@ export default function RemoveFriendDialog({
   open,
   setOpen,
 }: {
-  id: string;
+  id: number;
   username: string;
   trigger: React.ReactNode;
   open: boolean;

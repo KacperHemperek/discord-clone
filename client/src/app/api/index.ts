@@ -1,4 +1,5 @@
 export { api } from "./api.ts";
+
 export type {
   LoginUserBodyType,
   LoginUserResponse,
@@ -12,6 +13,12 @@ export type {
   PendingFriendsResponse,
   AllFriendResponse,
 } from "./types/friends.ts";
+export {
+  type Chat,
+  type GetAllChats,
+  type CreateChatResponse,
+  ChatType,
+} from "./types/chat";
 
 export { QueryKeys } from "./queryKeys.ts";
 

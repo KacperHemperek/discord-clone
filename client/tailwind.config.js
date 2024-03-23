@@ -1,3 +1,48 @@
+import plugin from "tailwindcss/plugin";
+
+const skeletonPlugin = plugin(({ addComponents, theme }) => {
+  const borderRadius = theme("borderRadius.sm");
+
+  addComponents({
+    ".skeleton-text-2xl": {
+      height: theme("spacing.6"),
+      marginTop: theme("spacing.1"),
+      marginBottom: theme("spacing.1"),
+      borderRadius,
+    },
+    ".skeleton-text-xl": {
+      height: theme("spacing.5"),
+      marginTop: theme("spacing.1"),
+      marginBottom: theme("spacing.1"),
+      borderRadius,
+    },
+    ".skeleton-text-lg": {
+      height: "1.125rem",
+      marginTop: 5,
+      marginBottom: 5,
+      borderRadius,
+    },
+    ".skeleton-text-base": {
+      height: theme("spacing.4"),
+      marginTop: theme("spacing.1"),
+      marginBottom: theme("spacing.1"),
+      borderRadius,
+    },
+    ".skeleton-text-sm": {
+      height: "0.875rem",
+      marginTop: 3,
+      marginBottom: 3,
+      borderRadius,
+    },
+    ".skeleton-text-xs": {
+      height: theme("spacing.3"),
+      marginTop: 2,
+      marginBottom: 2,
+      borderRadius,
+    },
+  });
+});
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
@@ -95,5 +140,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [skeletonPlugin],
 };

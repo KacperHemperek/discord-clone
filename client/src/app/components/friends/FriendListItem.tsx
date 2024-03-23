@@ -2,10 +2,9 @@ import React from "react";
 import { MessageCircle, Trash } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChatTypes } from "../../types/chats.ts";
 import FriendListItemButton from "./FriendItemButton";
 import RemoveFriendDialog from "./RemoveFriendDialog";
-import { api, QueryKeys } from "../../api";
+import { api, CreateChatResponse, QueryKeys } from "../../api";
 import { ClientError } from "../../utils/clientError";
 import { useToast } from "../../hooks/useToast";
 
@@ -23,9 +22,9 @@ export default function FriendListItem({
 
   const { mutate, isPending } = useMutation({
     mutationFn: async () =>
-      api.post<ChatsTypes.CreateChatWithUsersSuccessResponseType>("/chats", {
+      api.post<CreateChatResponse>("/chats/private", {
         body: JSON.stringify({
-          userIds: [id],
+          userId: id,
         }),
       }),
 
@@ -37,33 +36,13 @@ export default function FriendListItem({
       await queryClient.invalidateQueries({
         queryKey: QueryKeys.getAllChats(),
       });
-      toast.success("Chat created successfully!");
       navigate(`/home/chats/${chatId}`);
     },
   });
 
-  function createOrRedirectToChat(e: React.MouseEvent) {
-    e.stopPropagation();
-    const allChats = queryClient.getQueryData(["chats"]) as
-      | ChatsTypes.GetChatsSuccessResponseType
-      | undefined;
-
-    const chat = allChats?.chats.find((chat) => {
-      return (
-        chat.type === ChatTypes.private &&
-        chat.users.some((user) => user.id === id)
-      );
-    });
-    if (chat) {
-      navigate(`/home/chats/${chat.id}`);
-      return;
-    }
-    mutate();
-  }
-
   return (
     <div
-      onClick={createOrRedirectToChat}
+      onClick={() => mutate()}
       className="relative flex w-full group cursor-pointer"
     >
       {/* Top Border */}
@@ -78,7 +57,7 @@ export default function FriendListItem({
           <FriendListItemButton
             disabled={isPending}
             icon={<MessageCircle size={20} />}
-            onClick={createOrRedirectToChat}
+            onClick={() => mutate()}
           />
           <RemoveFriendDialog
             open={open}
