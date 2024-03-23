@@ -26,7 +26,6 @@ export default function InviteUserPage() {
   const [showSuccess, setShowSuccess] = React.useState(false);
 
   const { mutate: sendFriendRequestMutation } = useMutation({
-    mutationKey: ["invite-friend"],
     mutationFn: async (data: InviteFormValues) =>
       await api.post<SuccessMessageResponse>("/friends", {
         body: JSON.stringify(data),
