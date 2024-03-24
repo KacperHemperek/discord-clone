@@ -26,6 +26,7 @@ type FriendshipServiceInterface interface {
 	MakeFriendshipPending(requestID int) error
 	DeleteRequestAndSendNew(requestID, inviterID, friendID int) error
 	GetFriendsByUserID(userID int) ([]*models.User, error)
+	DeleteFriendship(friendshipID int) error
 }
 
 func (s *FriendshipService) SendFriendRequest(inviterID, friendID int) error {
@@ -187,7 +188,7 @@ func (s *FriendshipService) DeleteRequestAndSendNew(requestID, inviterID, friend
 	)
 
 	if err != nil {
-		_ = tx.Rollback()
+		rollback(tx)
 		return err
 	}
 
@@ -197,7 +198,7 @@ func (s *FriendshipService) DeleteRequestAndSendNew(requestID, inviterID, friend
 	)
 
 	if err != nil {
-		_ = tx.Rollback()
+		rollback(tx)
 		return err
 	}
 
@@ -285,6 +286,59 @@ func (s *FriendshipService) GetFriendsByUserID(userID int) ([]*models.User, erro
 			return users, nil
 		}
 	}
+}
+
+func (s *FriendshipService) DeleteFriendship(friendshipID int) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		rollback(tx)
+		return err
+	}
+	row := tx.QueryRow(
+		"SELECT id, inviter_id, friend_id, status, seen, requested_at, status_updated_at FROM friendships WHERE id = $1",
+		friendshipID,
+	)
+	friendship, err := scanFriendship(row)
+	if err != nil {
+		rollback(tx)
+		return err
+	}
+	row = tx.QueryRow(`
+		SELECT c.id FROM chats c
+    		JOIN chat_to_user cu ON c.id = cu.chat_id WHERE cu.user_id = $1 AND c.type = 'private'
+	  	INTERSECT 
+		SELECT c.id FROM chats c 
+		    JOIN chat_to_user cu ON c.id = cu.chat_id WHERE cu.user_id = $2 AND c.type = 'private'`,
+		friendship.InviterID,
+		friendship.FriendID,
+	)
+	chatID, err := scanID(row)
+	if err != nil {
+		rollback(tx)
+		return err
+	}
+	_, err = tx.Exec(
+		"DELETE FROM chats WHERE id = $1",
+		chatID,
+	)
+	if err != nil {
+		rollback(tx)
+		return err
+	}
+	_, err = tx.Exec(
+		"DELETE FROM friendships WHERE id = $1",
+		friendshipID,
+	)
+	if err != nil {
+		rollback(tx)
+		return err
+	}
+	err = tx.Commit()
+	if err != nil {
+		rollback(tx)
+		return err
+	}
+	return nil
 }
 func NewFriendshipService(db *Database) *FriendshipService {
 	return &FriendshipService{db: db}

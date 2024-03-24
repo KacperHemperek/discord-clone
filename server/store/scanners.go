@@ -119,3 +119,14 @@ func scanChat(scanner Scanner) (*models.Chat, error) {
 
 	return chat, nil
 }
+
+// Scans only single entry from query that has to be an integer,
+// returns id from table or -1 and error when scan returned error
+func scanID(scanner Scanner) (int, error) {
+	var ID int
+	err := scanner.Scan(&ID)
+	if err != nil {
+		return -1, err
+	}
+	return ID, nil
+}

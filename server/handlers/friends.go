@@ -186,6 +186,37 @@ func HandleRejectFriendRequest(friendshipService store.FriendshipServiceInterfac
 	}
 }
 
+func HandleRemoveFriend(friendshipService store.FriendshipServiceInterface) utils.APIHandler {
+	type response struct {
+		Message string `json:"message"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+		friendID, err := utils.GetIntParam(r, "friendID")
+		if err != nil {
+			return &utils.APIError{
+				Code:    http.StatusBadRequest,
+				Message: "Friend id is not valid",
+			}
+		}
+		friend, err := friendshipService.GetFriendshipByUsers(friendID, c.User.ID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return &utils.APIError{
+					Code:    http.StatusNotFound,
+					Message: "User does not have a friend with that id",
+				}
+			}
+			return err
+		}
+		deleteError := friendshipService.DeleteFriendship(friend.ID)
+		if err != nil {
+			return deleteError
+		}
+		return utils.WriteJson(w, http.StatusOK, &response{Message: "Friend removed successfully"})
+	}
+}
+
 type SendFriendRequestBody struct {
 	Email string `json:"email" validate:"required,email"`
 }
