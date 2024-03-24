@@ -7,11 +7,10 @@ import {
 } from "@radix-ui/react-popover";
 import { Checkbox, CheckboxIndicator } from "@radix-ui/react-checkbox";
 import { CheckIcon, PlusIcon } from "lucide-react";
-import { QueryKeys, useAllFriends } from "@app/api";
+import { CreateChatResponse, QueryKeys, useAllFriends, api } from "@app/api";
 import DCButton from "../Button";
-import { cn } from "../../utils/cn";
+import { cn } from "@app/utils/cn";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "../../api";
 import { useToast } from "../../hooks/useToast";
 
 function UserCheckboxItem({
@@ -19,7 +18,7 @@ function UserCheckboxItem({
   onCheck,
   selected,
 }: {
-  id: string;
+  id: number;
   email: string;
   username: string;
   selected: boolean;
@@ -55,16 +54,16 @@ export default function CreateGroupChat() {
 
   const lastScrollPosition = React.useRef(0);
 
-  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = React.useState<number[]>([]);
   const [open, setOpen] = React.useState(false);
   const [showBottomBorder, setShowBottomBorder] = React.useState(false);
 
   const { mutate, isPending } = useMutation({
     mutationFn: async () =>
-      api.post<ChatsTypes.CreateChatWithUsersSuccessResponseType>("/chats", {
+      api.post<CreateChatResponse>("/chats/group", {
         body: JSON.stringify({
           userIds: selectedIds,
-        } as ChatsTypes.CreateChatWithUsersBodyType),
+        }),
       }),
     onSuccess: async () => {
       setSelectedIds([]);
@@ -96,7 +95,7 @@ export default function CreateGroupChat() {
     lastScrollPosition.current = target.scrollTop;
   }
 
-  function toggleUserSelection(val: boolean, userId: string) {
+  function toggleUserSelection(val: boolean, userId: number) {
     if (val) {
       setSelectedIds((prev) => [...prev, userId]);
     } else {
