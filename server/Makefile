@@ -7,5 +7,8 @@ build:
 run: build
 	@./bin/main
 
+dev:
+	air
+
 test:
 	go test -count=1 ./...
