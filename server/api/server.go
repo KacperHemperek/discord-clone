@@ -36,8 +36,20 @@ func (s *Server) Start() error {
 
 	// register all middlewares
 	authMiddleware := middlewares.NewAuthMiddleware()
+	connectWsMiddleware := middlewares.NewConnectWsMiddleware()
+	wsAuthMiddleware := middlewares.NewWsAuthMiddleware()
 
-	setupRoutes(router, authMiddleware, userService, friendshipService, chatService, notificationsWsService, v)
+	setupRoutes(
+		router,
+		authMiddleware,
+		connectWsMiddleware,
+		wsAuthMiddleware,
+		userService,
+		friendshipService,
+		chatService,
+		notificationsWsService,
+		v,
+	)
 
 	portStr := fmt.Sprintf(":%d", s.port)
 	fmt.Printf("Server is running on port %d\n", s.port)

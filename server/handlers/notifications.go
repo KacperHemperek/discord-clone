@@ -12,20 +12,10 @@ import (
 func HandleSubscribeNotifications(notificationWsService ws.NotificationServiceInterface) utils.APIHandler {
 
 	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
-		upgrader := websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-		}
-
-		conn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			return err
-		}
-
-		notificationWsService.AddConn(c.User.ID, conn)
+		notificationWsService.AddConn(c.User.ID, c.Conn)
 
 		for {
-			mType, msg, err := conn.ReadMessage()
+			mType, msg, err := c.Conn.ReadMessage()
 
 			if err != nil {
 				return err

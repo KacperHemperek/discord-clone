@@ -62,7 +62,6 @@ func NewAuthMiddleware() AuthMiddleware {
 			return h(w, r, c)
 		}
 	}
-
 }
 
 func createNewAccessTokenAndRefreshToken(r *http.Request) (user *utils.JWTUser, accessToken, refreshToken string, err error) {
