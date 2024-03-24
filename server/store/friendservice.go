@@ -227,7 +227,7 @@ func (s *FriendshipService) GetFriendsByUserID(userID int) ([]*models.User, erro
 	go func() {
 		defer wg.Done()
 		acceptedFriends, err := s.db.Query(
-			"SELECT u.id, u.username, u.email, u.active, u.password, u.created_at, u.updated_at, f.status_updated_at FROM friendships f JOIN public.users u on u.id = f.inviter_id WHERE friend_id=$1;",
+			"SELECT u.id, u.username, u.email, u.active, u.password, u.created_at, u.updated_at, f.status_updated_at FROM friendships f JOIN public.users u on u.id = f.inviter_id WHERE friend_id=$1 AND f.status='accepted'",
 			userID,
 		)
 		if err != nil {
@@ -248,7 +248,7 @@ func (s *FriendshipService) GetFriendsByUserID(userID int) ([]*models.User, erro
 	go func() {
 		defer wg.Done()
 		invitedFriends, err := s.db.Query(
-			"SELECT u.id, u.username, u.email, u.active, u.password, u.created_at, u.updated_at, f.status_updated_at FROM friendships f JOIN public.users u on u.id = f.friend_id WHERE inviter_id=$1;",
+			"SELECT u.id, u.username, u.email, u.active, u.password, u.created_at, u.updated_at, f.status_updated_at FROM friendships f JOIN public.users u on u.id = f.friend_id WHERE inviter_id=$1 AND f.status='accepted';",
 			userID,
 		)
 		if err != nil {
