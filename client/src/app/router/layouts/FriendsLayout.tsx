@@ -2,14 +2,12 @@ import { Outlet } from "react-router-dom";
 import { User } from "lucide-react";
 import { useFriendRequests } from "../../context/FriendRequestsProvider";
 import { FriendsNavLink } from "../../components/friends/FriendsNavLink";
-import ChatLinkList from "../../components/chats/ChatLinkList";
 
 export default function FriendsLayout() {
   const { hasNewRequests } = useFriendRequests();
 
   return (
     <>
-      <ChatLinkList />
       <div className="flex-grow flex flex-col">
         <nav className="border-b flex border-dc-neutral-1000 w-full p-3 gap-4">
           <div className="flex gap-2 font-semibold items-center">

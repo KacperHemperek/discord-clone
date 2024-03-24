@@ -8,10 +8,9 @@ import { ChatSocketMessageType } from "../../types/chats.ts";
 import { useGroupedMessages } from "../../hooks/useGroupedMessages";
 import { useToast } from "../../hooks/useToast";
 import { getWebsocketConnection } from "../../utils/websocket";
-import { api } from "../../api";
+import { api } from "@app/api";
 import { useAuth } from "../../context/AuthProvider";
 import OneDayChatMessageGroup from "../../components/chats/OneDayChatMessageGroup";
-import ChatLinkList from "../../components/chats/ChatLinkList";
 
 const nameChangeSchema = z.object({
   name: z.string().min(1),
@@ -263,7 +262,6 @@ export default function PrivateChat() {
 
   return (
     <div className="max-h-screen h-full flex-grow flex">
-      <ChatLinkList />
       <div className="flex-grow flex flex-col">
         <nav className="border-b flex border-dc-neutral-1000 w-full p-3 gap-4">
           {!!chatName && !!chatId && (
