@@ -20,7 +20,8 @@ func setupRoutes(
 	notificationsWsService *ws.NotificationService,
 	v *validator.Validate,
 ) {
-	mux.HandleFunc("/healthcheck", utils.HandlerFunc(handlers.HandleHealthcheck())).Methods("GET")
+
+	mux.HandleFunc("/healthcheck", utils.HandlerFunc(handlers.HandleHealthcheck())).Methods(http.MethodGet)
 
 	mux.HandleFunc("/auth/register", utils.HandlerFunc(handlers.HandleRegisterUser(userService, v))).Methods(http.MethodPost)
 	mux.HandleFunc("/auth/login", utils.HandlerFunc(handlers.HandleLogin(userService, v))).Methods(http.MethodPost)
