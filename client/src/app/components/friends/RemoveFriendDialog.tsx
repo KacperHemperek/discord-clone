@@ -12,18 +12,18 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import DCButton from "../Button";
-import { api, QueryKeys } from "../../api";
+import { api, QueryKeys, SuccessMessageResponse } from "@app/api";
 import { ToastDuration, useToast } from "../../hooks/useToast";
 import { ClientError } from "../../utils/clientError";
 
 export default function RemoveFriendDialog({
-  id,
+  userId,
   username,
   trigger,
   open,
   setOpen,
 }: {
-  id: number;
+  userId: number;
   username: string;
   trigger: React.ReactNode;
   open: boolean;
@@ -34,14 +34,7 @@ export default function RemoveFriendDialog({
 
   const { mutate, isPending } = useMutation({
     mutationFn: async () =>
-      await api.delete<CommonResponsesTypes.MessageSuccessResponseType>(
-        `/friends/invites`,
-        {
-          body: JSON.stringify({
-            friendId: id,
-          } as FriendsTypes.RemoveFriendBodyType),
-        },
-      ),
+      api.delete<SuccessMessageResponse>(`/friends/${userId}`),
     onSuccess: async (data) => {
       toast.success(data.message, { duration: ToastDuration.short });
       await queryClient.invalidateQueries({

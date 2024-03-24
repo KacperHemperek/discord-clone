@@ -67,7 +67,7 @@ export default function FriendListItem({
           <RemoveFriendDialog
             open={open}
             setOpen={setOpen}
-            id={id}
+            userId={id}
             username={username}
             trigger={
               <FriendListItemButton
