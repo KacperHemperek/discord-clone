@@ -8,6 +8,8 @@ import (
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
 	"net/http"
+	"slices"
+	"strings"
 )
 
 type CreateChatRequestBody struct {
@@ -76,14 +78,50 @@ type CreateGroupChatRequestBody struct {
 
 func HandleCreateGroupChat(
 	chatService store.ChatServiceInterface,
+	userService store.UserServiceInterface,
 	validate *validator.Validate,
 ) utils.APIHandler {
+	type response struct {
+		ChatID  int    `json:"chatId"`
+		Message string `json:"message"`
+	}
 	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
-
-		return &utils.APIError{
-			Message: "Not yet implemented",
-			Code:    http.StatusNotImplemented,
+		body := &CreateGroupChatRequestBody{}
+		if err := utils.ReadAndValidateBody(r, body, validate); err != nil {
+			return &utils.APIError{
+				Code:    http.StatusBadRequest,
+				Message: "Request body is not valid",
+				Cause:   err,
+			}
 		}
+		if slices.Contains(body.UserIDs, c.User.ID) {
+			return &utils.APIError{
+				Code:    http.StatusBadRequest,
+				Message: "userIds cannot contain logged in user id",
+				Cause:   nil,
+			}
+		}
+		allIDs := append(body.UserIDs, c.User.ID)
+		users, err := userService.GetUsersByIDs(allIDs)
+		if err != nil {
+			return err
+		}
+		if len(users) != len(allIDs) {
+			return &utils.APIError{
+				Message: "Not every user exists from provided list",
+				Code:    http.StatusNotFound,
+			}
+		}
+		usernames := make([]string, len(users))
+		for i, user := range users {
+			usernames[i] = user.Username
+		}
+		chatName := strings.Join(usernames, ", ")
+		chat, err := chatService.CreateGroupChat(chatName, allIDs)
+		if err != nil {
+			return err
+		}
+		return utils.WriteJson(w, http.StatusCreated, &response{ChatID: chat.ID, Message: "Chat created successfully"})
 	}
 }
 

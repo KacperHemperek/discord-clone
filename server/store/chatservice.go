@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/utils"
+	"strings"
 	"time"
 )
 
@@ -15,6 +16,7 @@ type ChatServiceInterface interface {
 	GetPrivateChatByUserIDs(int, int) (*models.Chat, error)
 	CreatePrivateChatWithUsers(int, int) (*models.Chat, error)
 	GetUsersChatsWithMembers(userID int) ([]*models.ChatWithMembers, error)
+	CreateGroupChat(chatName string, userIDs []int) (*models.Chat, error)
 }
 
 func (s *ChatService) GetPrivateChatByUserIDs(userOneID, userTwoID int) (*models.Chat, error) {
@@ -128,6 +130,42 @@ func (s *ChatService) GetUsersChatsWithMembers(userID int) ([]*models.ChatWithMe
 	return result, nil
 }
 
+func (s *ChatService) CreateGroupChat(chatName string, userIDs []int) (*models.Chat, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	row := tx.QueryRow(
+		"INSERT INTO chats (name, type) VALUES ($1, 'group') RETURNING id, name, type,created_at, updated_at",
+		chatName,
+	)
+	chat, err := scanChat(row)
+	if err != nil {
+		rollbackErr := tx.Rollback()
+		if rollbackErr != nil {
+			fmt.Println("Error rolling back transaction")
+		}
+		return nil, err
+	}
+	userVals := make([]string, len(userIDs))
+	for i, userID := range userIDs {
+		userVals[i] = fmt.Sprintf("(%d, %d)", chat.ID, userID)
+	}
+	query := fmt.Sprintf("INSERT INTO chat_to_user (chat_id, user_id) VALUES %s", strings.Join(userVals, ","))
+	_, err = tx.Exec(query)
+	if err != nil {
+		rollbackErr := tx.Rollback()
+		if rollbackErr != nil {
+			fmt.Println("Error rolling back transaction")
+		}
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	return chat, err
+}
 func NewChatService(db *Database) *ChatService {
 	return &ChatService{
 		db: db,

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/utils"
+	"strings"
 	"time"
 )
 
@@ -16,6 +17,7 @@ type UserService struct {
 type UserServiceInterface interface {
 	FindUserByEmail(email string) (*models.User, error)
 	CreateUser(username, password, email string) (*models.User, error)
+	GetUsersByIDs(userIDs []int) ([]*models.User, error)
 }
 
 func (s *UserService) FindUserByEmail(email string) (*models.User, error) {
@@ -85,6 +87,36 @@ func (s *UserService) CreateUser(username, password, email string) (*models.User
 	}
 
 	return nil, UserUnknownError
+}
+
+func (s *UserService) GetUsersByIDs(userIDs []int) ([]*models.User, error) {
+	placeholders := make([]string, len(userIDs))
+	for i := range userIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+	}
+
+	query := fmt.Sprintf("SELECT id, username, email, active, password, created_at, updated_at FROM users WHERE id IN (%s)", strings.Join(placeholders, ", "))
+
+	params := make([]any, len(userIDs))
+	for i, id := range userIDs {
+		params[i] = id
+	}
+
+	users := make([]*models.User, 0)
+	rows, err := s.db.Query(query, params...)
+	if err != nil {
+		return users, err
+	}
+
+	for rows.Next() {
+		user, err := scanUser(rows)
+		if err != nil {
+			return make([]*models.User, 0), err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
 }
 
 var UserNotFoundError = errors.New("user not found")

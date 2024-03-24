@@ -35,7 +35,7 @@ func setupRoutes(
 
 	mux.HandleFunc("/chats", utils.HandlerFunc(authMiddleware(handlers.HandleGetUsersChats(chatService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/chats/private", utils.HandlerFunc(authMiddleware(handlers.HandleCreatePrivateChat(chatService, friendshipService, v)))).Methods(http.MethodPost)
-	mux.HandleFunc("/chats/group", utils.HandlerFunc(authMiddleware(handlers.HandleCreateGroupChat(chatService, v)))).Methods(http.MethodPost)
+	mux.HandleFunc("/chats/group", utils.HandlerFunc(authMiddleware(handlers.HandleCreateGroupChat(chatService, userService, v)))).Methods(http.MethodPost)
 
 	mux.HandleFunc("/notifications", utils.HandlerFunc(authMiddleware(handlers.HandleSubscribeNotifications(notificationsWsService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/notifications", utils.HandlerFunc(authMiddleware(handlers.HandleCreateNotification(notificationsWsService, v)))).Methods(http.MethodPost)
