@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"net/http"
 	"strconv"
 	"time"
@@ -32,11 +33,11 @@ func HandlerFunc(handler APIHandler) http.HandlerFunc {
 			var err *APIError
 			if errors.As(handlerErr, &err) {
 				logApiError(err, r)
-				WriteJson(w, err.Code, err)
+				_ = WriteJson(w, err.Code, err)
 				return
 			}
 			logError(handlerErr, r)
-			WriteJson(w, http.StatusInternalServerError, &APIError{
+			_ = WriteJson(w, http.StatusInternalServerError, &APIError{
 				Code:    http.StatusInternalServerError,
 				Message: "Internal Server Error",
 			})
@@ -86,6 +87,7 @@ type APIHandler func(w http.ResponseWriter, r *http.Request, c *Context) error
 
 type Context struct {
 	User *JWTUser
+	Conn *websocket.Conn
 }
 
 type JSON map[string]interface{}
