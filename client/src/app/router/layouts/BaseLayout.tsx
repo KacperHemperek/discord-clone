@@ -45,7 +45,6 @@ export default function BaseLayout() {
           {/* Settings */}
           <div className="flex flex-col gap-2 px-2 pb-2"></div>
         </div>
-
         <Outlet />
       </div>
     </FriendRequestsProvider>
