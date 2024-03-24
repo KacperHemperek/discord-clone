@@ -53,5 +53,6 @@ func setupCors(r *mux.Router) http.Handler {
 	return cors.New(cors.Options{
 		AllowedOrigins:   acceptedOrigins,
 		AllowCredentials: true,
+		AllowedMethods:   []string{http.MethodDelete, http.MethodGet, http.MethodPatch, http.MethodPost, http.MethodPut},
 	}).Handler(r)
 }
