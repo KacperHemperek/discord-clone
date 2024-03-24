@@ -2,10 +2,10 @@
 include .env
 
 build:
-	@go build -o ./bin/main
+	@go build -o ./tmp/main
 
 run: build
-	@./bin/main
+	@./tmp/main
 
 dev:
 	air
