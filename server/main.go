@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/joho/godotenv"
 	"github.com/kacperhemperek/discord-go/api"
+	"os"
+	"os/signal"
 )
 
 func init() {
@@ -14,7 +17,19 @@ func init() {
 		panic(err)
 	}
 }
-func main() {
+
+func run(ctx context.Context) error {
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
+	defer cancel()
 	s := api.NewApiServer(8080)
-	s.Start()
+	return s.Start()
+}
+
+func main() {
+
+	ctx := context.Background()
+	if err := run(ctx); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
 }

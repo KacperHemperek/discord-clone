@@ -8,7 +8,6 @@ import (
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/ws"
 	"github.com/rs/cors"
-	"log"
 	"net/http"
 )
 
@@ -20,7 +19,7 @@ func NewApiServer(port int) *Server {
 	return &Server{port: port}
 }
 
-func (s *Server) Start() {
+func (s *Server) Start() error {
 	router := mux.NewRouter()
 	db := store.NewDB()
 	store.RunMigrations(db)
@@ -45,7 +44,7 @@ func (s *Server) Start() {
 
 	corsRouter := setupCors(router)
 
-	log.Fatal(http.ListenAndServe(portStr, corsRouter))
+	return http.ListenAndServe(portStr, corsRouter)
 }
 
 func setupCors(r *mux.Router) http.Handler {

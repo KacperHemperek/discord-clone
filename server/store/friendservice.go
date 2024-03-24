@@ -230,6 +230,7 @@ func (s *FriendshipService) GetFriendsByUserID(userID int) ([]*models.User, erro
 			"SELECT u.id, u.username, u.email, u.active, u.password, u.created_at, u.updated_at, f.status_updated_at FROM friendships f JOIN public.users u on u.id = f.inviter_id WHERE friend_id=$1 AND f.status='accepted'",
 			userID,
 		)
+
 		if err != nil {
 			errChan <- err
 			return
