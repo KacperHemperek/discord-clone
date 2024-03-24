@@ -118,9 +118,7 @@ export default function CreateGroupChat() {
   return (
     <Popover open={open} onOpenChange={changeOpenState}>
       <PopoverTrigger>
-        <button>
-          <PlusIcon className="w-4 h-4 text-dc-neutral-300" />
-        </button>
+        <PlusIcon className="w-4 h-4 text-dc-neutral-300" />
       </PopoverTrigger>
 
       <PopoverPortal>
