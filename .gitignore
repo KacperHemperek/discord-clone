@@ -1,5 +1,6 @@
 server/bin
 server/.env
+tmp
 
 .env
 
