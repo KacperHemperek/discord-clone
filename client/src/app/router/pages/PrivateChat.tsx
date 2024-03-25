@@ -7,10 +7,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChatSocketMessageType } from "../../types/chats.ts";
 import { useGroupedMessages } from "../../hooks/useGroupedMessages";
 import { useToast } from "../../hooks/useToast";
-import { getWebsocketConnection } from "../../utils/websocket";
 import { api } from "@app/api";
 import { useAuth } from "../../context/AuthProvider";
 import OneDayChatMessageGroup from "../../components/chats/OneDayChatMessageGroup";
+import { useWebsocket } from "@app/api/ws.ts";
 
 const nameChangeSchema = z.object({
   name: z.string().min(1),
@@ -139,24 +139,16 @@ export default function PrivateChat() {
   const groupedMessages = useGroupedMessages(chatInfo?.messages ?? []);
 
   const [newMessage, setNewMessage] = React.useState<string>("");
+  useWebsocket({
+    path: `/notifications`,
+    onMessage: (event) => {
+      const data = JSON.parse(event.data) as ChatsTypes.NewMessageType;
 
-  React.useEffect(() => {
-    websocketRef.current = getWebsocketConnection(`/chats/${chatId}`);
-
-    if (websocketRef.current) {
-      websocketRef.current.addEventListener("message", (event) => {
-        const data = JSON.parse(event.data) as ChatsTypes.NewMessageType;
-
-        if (data.type === ChatSocketMessageType.newMessage) {
-          addNewMessageToChat(data);
-        }
-      });
-    }
-
-    return () => {
-      websocketRef.current?.close();
-    };
-  }, [chatId]);
+      if (data.type === ChatSocketMessageType.newMessage) {
+        addNewMessageToChat(data);
+      }
+    },
+  });
 
   function addNewMessageToChat(payload: ChatsTypes.NewMessageType) {
     if (payload.message.sender.id === user?.id) {

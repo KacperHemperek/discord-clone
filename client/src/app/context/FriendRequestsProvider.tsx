@@ -1,9 +1,5 @@
-import { FriendRequestType } from "../types/friends";
 import React from "react";
-import { getWebsocketConnection } from "../utils/websocket";
 import { z } from "zod";
-import { useMatch } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 
 const inviteItemSchema = z.object({
   id: z.string(),
@@ -12,65 +8,40 @@ const inviteItemSchema = z.object({
   seen: z.boolean(),
 });
 
-const allFriendsRequestSchema = z.object({
-  type: z.literal(FriendRequestType.allFriendInvites),
-  payload: z.array(inviteItemSchema),
-});
-
-const newFriendRequestSchema = z.object({
-  type: z.literal(FriendRequestType.newFriendInvite),
-  payload: inviteItemSchema,
-});
-
 type FriendInvite = z.infer<typeof inviteItemSchema>;
 
 function useFriendRequestsValue() {
-  const queryClient = useQueryClient();
-  const match = useMatch("/home/friends/requests");
-
   const [requests, setRequests] = React.useState<FriendInvite[]>([]);
 
-  const friendInviteWs = React.useRef<WebSocket | null>(null);
-
-  React.useEffect(() => {
-    const ws = getWebsocketConnection("/friends/invites");
-    if (!ws) return;
-
-    friendInviteWs.current = ws;
-
-    friendInviteWs.current.addEventListener("message", handleWebsocketMessage);
-
-    return () => {
-      friendInviteWs.current?.close();
-    };
-  }, []);
-
-  function handleWebsocketMessage({ data }: { data: string }) {
-    const jsonData = JSON.parse(data);
-
-    if (jsonData?.type === FriendRequestType.allFriendInvites) {
-      const parsedData = allFriendsRequestSchema.safeParse(jsonData);
-
-      if (parsedData.success) {
-        setRequests(parsedData.data.payload);
-      }
-    }
-
-    if (jsonData?.type === FriendRequestType.newFriendInvite) {
-      const parsedData = newFriendRequestSchema.safeParse(jsonData);
-
-      if (parsedData.success) {
-        if (match) {
-          queryClient.refetchQueries({ queryKey: ["seen-all"] });
-        }
-
-        setRequests((notifications) => [
-          ...notifications,
-          parsedData.data.payload,
-        ]);
-      }
-    }
-  }
+  // useWebsocket({
+  //   path: "/friends/invites",
+  //   onMessage: (event) => {
+  //     const jsonData = JSON.parse(event.data);
+  //
+  //     if (jsonData?.type === FriendRequestType.allFriendInvites) {
+  //       const parsedData = allFriendsRequestSchema.safeParse(jsonData);
+  //
+  //       if (parsedData.success) {
+  //         setRequests(parsedData.data.payload);
+  //       }
+  //     }
+  //
+  //     if (jsonData?.type === FriendRequestType.newFriendInvite) {
+  //       const parsedData = newFriendRequestSchema.safeParse(jsonData);
+  //
+  //       if (parsedData.success) {
+  //         if (match) {
+  //           queryClient.refetchQueries({ queryKey: ["seen-all"] });
+  //         }
+  //
+  //         setRequests((notifications) => [
+  //           ...notifications,
+  //           parsedData.data.payload,
+  //         ]);
+  //       }
+  //     }
+  //   },
+  // });
 
   function markAllAsSeen() {
     setRequests((requests) => {

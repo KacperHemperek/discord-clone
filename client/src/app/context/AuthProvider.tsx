@@ -32,6 +32,7 @@ export function useUserQuery() {
     accessToken,
     refreshToken,
     setAccessToken,
+    setRefreshToken,
     user: data,
     isLoadingUser,
     userError,
