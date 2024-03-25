@@ -1,23 +1,38 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, QueryKeys, GetLoggedInUserResponse } from "@app/api";
 
 export function useUserQuery() {
+  const [accessToken, setAccessToken] = React.useState("");
+  const [refreshToken, setRefreshToken] = React.useState("");
+
   const {
-    data: user,
+    data,
     isLoading: isLoadingUser,
     error: userError,
   } = useQuery({
     queryKey: QueryKeys.getLoggedInUser(),
     queryFn: async () => {
       const res = await api.get<GetLoggedInUserResponse>("/auth/me");
+      setAccessToken(res.accessToken);
+      setRefreshToken(res.refreshToken);
       return res.user;
     },
     retry: false,
   });
 
+  useEffect(() => {
+    if (userError) {
+      setRefreshToken("");
+      setAccessToken("");
+    }
+  }, [userError]);
+
   return {
-    user,
+    accessToken,
+    refreshToken,
+    setAccessToken,
+    user: data,
     isLoadingUser,
     userError,
   };
