@@ -169,8 +169,27 @@ func HandleLogin(userService *store.UserService, validate *validator.Validate) u
 
 func HandleGetLoggedInUser() utils.APIHandler {
 
-	return func(w http.ResponseWriter, _ *http.Request, c *utils.Context) error {
-		return utils.WriteJson(w, http.StatusOK, &utils.JSON{"user": c.User})
+	type response struct {
+		User         *utils.JWTUser `json:"user"`
+		AccessToken  string         `json:"accessToken"`
+		RefreshToken string         `json:"refreshToken"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+		accessToken, err := utils.GetAccessToken(r)
+		if err != nil {
+			return err
+		}
+		refreshToken, err := utils.GetRefreshToken(r)
+		if err != nil {
+			return err
+		}
+
+		return utils.WriteJson(w, http.StatusOK, &response{
+			User:         c.User,
+			RefreshToken: refreshToken,
+			AccessToken:  accessToken,
+		})
 	}
 }
 

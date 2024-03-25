@@ -10,8 +10,8 @@ export function useUserQuery() {
   } = useQuery({
     queryKey: QueryKeys.getLoggedInUser(),
     queryFn: async () => {
-      const { user } = await api.get<GetLoggedInUserResponse>("/auth/me");
-      return user;
+      const res = await api.get<GetLoggedInUserResponse>("/auth/me");
+      return res.user;
     },
     retry: false,
   });

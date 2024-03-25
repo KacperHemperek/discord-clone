@@ -24,4 +24,6 @@ export type RegisterUserResponseType = {
 
 export type GetLoggedInUserResponse = {
   user: UserResponse;
+  accessToken: string;
+  refreshToken: string;
 };
