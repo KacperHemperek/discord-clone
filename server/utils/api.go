@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 )
@@ -45,15 +46,23 @@ func HandlerFunc(handler APIHandler) http.HandlerFunc {
 	}
 }
 
+func truncateURL(s *url.URL) string {
+	if len(s.String()) <= 20 {
+		return s.String()
+	}
+
+	return s.String()[:20] + "..."
+}
+
 func logApiError(err *APIError, r *http.Request) {
-	fmt.Printf("ERROR %s [%s]: %s\n", r.URL, r.Method, err.Error())
+	fmt.Printf("ERROR %s [%s]: %s\n", truncateURL(r.URL), r.Method, err.Error())
 	if err.Cause != nil {
 		fmt.Printf("CAUSE: %s\n", err.Cause.Error())
 	}
 }
 
 func logError(err error, r *http.Request) {
-	fmt.Printf("ERROR %s [%s]: %s\n", r.URL, r.Method, err.Error())
+	fmt.Printf("ERROR %s [%s]: %s\n", truncateURL(r.URL), r.Method, err.Error())
 }
 
 func logRequest(r *http.Request, now time.Time) {

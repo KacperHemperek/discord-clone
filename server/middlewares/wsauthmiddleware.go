@@ -41,6 +41,12 @@ func NewWsAuthMiddleware() WsAuthMiddleware {
 			upgrader := websocket.Upgrader{
 				ReadBufferSize:  1024,
 				WriteBufferSize: 1024,
+				CheckOrigin: func(r *http.Request) bool {
+					if r.Host != "localhost:5173" && r.Host != "localhost:8080" {
+						return false
+					}
+					return true
+				},
 			}
 			conn, err := upgrader.Upgrade(w, r, nil)
 			if err != nil {
