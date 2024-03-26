@@ -47,11 +47,12 @@ func HandlerFunc(handler APIHandler) http.HandlerFunc {
 }
 
 func truncateURL(s *url.URL) string {
-	if len(s.String()) <= 20 {
+	const truncateLength = 40
+	if len(s.String()) <= truncateLength {
 		return s.String()
 	}
 
-	return s.String()[:20] + "..."
+	return s.String()[:truncateLength] + "..."
 }
 
 func logApiError(err *APIError, r *http.Request) {
@@ -66,7 +67,7 @@ func logError(err error, r *http.Request) {
 }
 
 func logRequest(r *http.Request, now time.Time) {
-	fmt.Printf("%s [%s] %s\n", r.Method, r.URL, time.Since(now))
+	fmt.Printf("%s [%s] %s\n", r.Method, truncateURL(r.URL), time.Since(now))
 }
 
 func WriteJson(w http.ResponseWriter, status int, data interface{}) error {

@@ -30,6 +30,7 @@ func (s *Server) Start() error {
 	userService := store.NewUserService(db)
 	friendshipService := store.NewFriendshipService(db)
 	chatService := store.NewChatService(db)
+	messageService := store.NewMessageService(db)
 
 	// register all ws services
 	notificationsWsService := ws.NewNotificationService()
@@ -47,6 +48,7 @@ func (s *Server) Start() error {
 		userService,
 		friendshipService,
 		chatService,
+		messageService,
 		notificationsWsService,
 		v,
 	)

@@ -152,3 +152,54 @@ func HandleGetUsersChats(
 		return utils.WriteJson(w, http.StatusOK, &response{Chats: chats})
 	}
 }
+
+type SendMessageRequestBody struct {
+	Text string `json:"text"`
+}
+
+func HandleSendMessage(
+	chatService store.ChatServiceInterface,
+	messageService store.MessageServiceInterface,
+	validate *validator.Validate,
+) utils.APIHandler {
+	type response struct {
+		NewMessage *models.MessageWithUser `json:"newMessage"`
+		Message    string                  `json:"message"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+		chatID, err := utils.GetIntParam(r, "chatID")
+		if err != nil {
+			return err
+		}
+		body := &SendMessageRequestBody{}
+		if err := utils.ReadAndValidateBody(r, body, validate); err != nil {
+			return &utils.APIError{
+				Code:    http.StatusBadRequest,
+				Message: "Request body is not valid",
+				Cause:   err,
+			}
+		}
+		chat, err := chatService.GetChatByID(chatID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return &utils.APIError{
+					Code:    http.StatusNotFound,
+					Message: "Chat was not found",
+					Cause:   err,
+				}
+			}
+			return err
+		}
+		message, err := messageService.CreateMessageInChat(chat.ID, c.User.ID, body.Text)
+		if err != nil {
+			return err
+		}
+		mwu, err := messageService.EnrichMessageWithUser(message)
+
+		return utils.WriteJson(w, http.StatusCreated, &response{
+			NewMessage: mwu,
+			Message:    "Message created successfully",
+		})
+	}
+}

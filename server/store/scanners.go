@@ -120,6 +120,20 @@ func scanChat(scanner Scanner) (*models.Chat, error) {
 	return chat, nil
 }
 
+func scanMessage(scanner Scanner) (*models.Message, error) {
+	message := &models.Message{}
+	err := scanner.Scan(
+		&message.ID,
+		&message.Text,
+		&message.CreatedAt,
+		&message.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return message, nil
+}
+
 // Scans only single entry from query that has to be an integer,
 // returns id from table or -1 and error when scan returned error
 func scanID(scanner Scanner) (int, error) {

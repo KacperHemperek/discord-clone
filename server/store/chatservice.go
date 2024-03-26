@@ -17,6 +17,7 @@ type ChatServiceInterface interface {
 	CreatePrivateChatWithUsers(int, int) (*models.Chat, error)
 	GetUsersChatsWithMembers(userID int) ([]*models.ChatWithMembers, error)
 	CreateGroupChat(chatName string, userIDs []int) (*models.Chat, error)
+	GetChatByID(chatID int) (*models.Chat, error)
 }
 
 func (s *ChatService) GetPrivateChatByUserIDs(userOneID, userTwoID int) (*models.Chat, error) {
@@ -165,6 +166,14 @@ func (s *ChatService) CreateGroupChat(chatName string, userIDs []int) (*models.C
 		return nil, err
 	}
 	return chat, err
+}
+
+func (s *ChatService) GetChatByID(chatID int) (*models.Chat, error) {
+	row := s.db.QueryRow(
+		"SELECT id, name, type,created_at, updated_at FROM chats WHERE id = $1",
+		chatID,
+	)
+	return scanChat(row)
 }
 func NewChatService(db *Database) *ChatService {
 	return &ChatService{
