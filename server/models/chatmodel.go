@@ -19,3 +19,8 @@ type ChatWithMembers struct {
 	Members []*User `json:"members"`
 	Chat
 }
+
+type ChatWithMessages struct {
+	Messages []*MessageWithUser `json:"messages"`
+	Chat
+}

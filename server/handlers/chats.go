@@ -203,3 +203,25 @@ func HandleSendMessage(
 		})
 	}
 }
+
+func HandleGetChatWithMessages(
+	chatService store.ChatServiceInterface,
+) utils.APIHandler {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+		chatID, err := utils.GetIntParam(r, "chatID")
+		if err != nil {
+			return err
+		}
+		chat, err := chatService.GetChatByID(chatID)
+		if err != nil {
+			return err
+		}
+		cwm, err := chatService.EnrichChatWithMessages(chat)
+		if err != nil {
+			return err
+		}
+
+		return utils.WriteJson(w, http.StatusOK, cwm)
+	}
+
+}

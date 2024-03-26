@@ -134,6 +134,29 @@ func scanMessage(scanner Scanner) (*models.Message, error) {
 	return message, nil
 }
 
+func scanMessageWithUser(scanner Scanner) (*models.MessageWithUser, error) {
+	message := &models.MessageWithUser{
+		User: &models.User{},
+	}
+	err := scanner.Scan(
+		&message.ID,
+		&message.Text,
+		&message.CreatedAt,
+		&message.UpdatedAt,
+		&message.User.ID,
+		&message.User.Username,
+		&message.User.Email,
+		&message.User.Active,
+		&message.User.Password,
+		&message.User.CreatedAt,
+		&message.User.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return message, nil
+}
+
 // Scans only single entry from query that has to be an integer,
 // returns id from table or -1 and error when scan returned error
 func scanID(scanner Scanner) (int, error) {

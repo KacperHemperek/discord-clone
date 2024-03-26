@@ -4,7 +4,7 @@ import "github.com/kacperhemperek/discord-go/models"
 
 type MessageServiceInterface interface {
 	CreateMessageInChat(chatID, userID int, text string) (*models.Message, error)
-	EnrichMessageWithUser(chat *models.Message) (*models.MessageWithUser, error)
+	EnrichMessageWithUser(message *models.Message) (*models.MessageWithUser, error)
 }
 
 type MessageService struct {
