@@ -19,6 +19,7 @@ type ChatServiceInterface interface {
 	CreateGroupChat(chatName string, userIDs []int) (*models.Chat, error)
 	GetChatByID(chatID int) (*models.Chat, error)
 	EnrichChatWithMessages(chat *models.Chat) (*models.ChatWithMessages, error)
+	GetUsersFromChat(chatID int) ([]*models.User, error)
 }
 
 func (s *ChatService) GetPrivateChatByUserIDs(userOneID, userTwoID int) (*models.Chat, error) {
@@ -210,6 +211,27 @@ func (s *ChatService) EnrichChatWithMessages(chat *models.Chat) (*models.ChatWit
 	}
 	return cwm, nil
 }
+
+func (s *ChatService) GetUsersFromChat(chatID int) ([]*models.User, error) {
+	rows, err := s.db.Query(`
+		SELECT u.id, u.username, u.email, u.active, u.password, u.created_at, u.updated_at FROM chats c 
+		    JOIN chat_to_user cu on c.id = cu.chat_id JOIN users u on u.id = cu.user_id WHERE c.id = $1`,
+		chatID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	users := make([]*models.User, 0)
+	for rows.Next() {
+		user, err := scanUser(rows)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
+
 func NewChatService(db *Database) *ChatService {
 	return &ChatService{
 		db: db,

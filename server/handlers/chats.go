@@ -139,14 +139,11 @@ func HandleGetUsersChats(
 		}
 		for _, chat := range chats {
 			if chat.Type == "private" {
-				var otherMember *models.User
-				for _, m := range chat.Members {
-					if m.ID != c.User.ID {
-						otherMember = m
-						break
-					}
+				newChatName, err := getPrivChatName(c.User.ID, chat.Members)
+				if err != nil {
+					return err
 				}
-				chat.Name = otherMember.Username
+				chat.Name = newChatName
 			}
 		}
 		return utils.WriteJson(w, http.StatusOK, &response{Chats: chats})
@@ -220,8 +217,35 @@ func HandleGetChatWithMessages(
 		if err != nil {
 			return err
 		}
-
+		if cwm.Type == "private" {
+			members, err := chatService.GetUsersFromChat(chat.ID)
+			if err != nil {
+				return err
+			}
+			chatName, err := getPrivChatName(c.User.ID, members)
+			if err != nil {
+				return err
+			}
+			cwm.Name = chatName
+		}
 		return utils.WriteJson(w, http.StatusOK, cwm)
 	}
-
 }
+
+func getPrivChatName(loggedInUserID int, members []*models.User) (string, error) {
+	var chatName string
+	found := false
+	for _, m := range members {
+		if m.ID != loggedInUserID {
+			chatName = m.Username
+			found = true
+			break
+		}
+	}
+	if found {
+		return chatName, nil
+	}
+	return "", errOtherUserNotFount
+}
+
+var errOtherUserNotFount = errors.New("other user then logged in not found")

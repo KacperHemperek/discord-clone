@@ -118,7 +118,7 @@ export default function PrivateChat() {
   const websocketRef = React.useRef<WebSocket | null>(null);
 
   const { data: chatInfo } = useQuery({
-    queryKey: ["chat", chatId],
+    queryKey: QueryKeys.getChat(chatId),
     queryFn: async () => api.get<GetChat>(`/chats/${chatId}`),
   });
 
