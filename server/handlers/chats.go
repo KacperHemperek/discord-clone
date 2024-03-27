@@ -188,15 +188,14 @@ func HandleSendMessage(
 			}
 			return err
 		}
-		message, err := messageService.CreateMessageInChat(chat.ID, c.User.ID, body.Text)
+		_, err = messageService.CreateMessageInChat(chat.ID, c.User.ID, body.Text)
+
 		if err != nil {
-			return err
+			return nil
 		}
-		mwu, err := messageService.EnrichMessageWithUser(message)
 
 		return utils.WriteJson(w, http.StatusCreated, &response{
-			NewMessage: mwu,
-			Message:    "Message created successfully",
+			Message: "Message created successfully",
 		})
 	}
 }
