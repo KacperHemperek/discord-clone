@@ -34,6 +34,7 @@ func (s *Server) Start() error {
 
 	// register all ws services
 	notificationsWsService := ws.NewNotificationService()
+	chatWsService := ws.NewChatService()
 
 	// register all middlewares
 	authMiddleware := middlewares.NewAuthMiddleware()
@@ -50,6 +51,7 @@ func (s *Server) Start() error {
 		chatService,
 		messageService,
 		notificationsWsService,
+		chatWsService,
 		v,
 	)
 

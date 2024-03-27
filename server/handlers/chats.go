@@ -3,10 +3,12 @@ package handlers
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
+	"github.com/kacperhemperek/discord-go/ws"
 	"net/http"
 	"slices"
 	"strings"
@@ -157,11 +159,11 @@ type SendMessageRequestBody struct {
 func HandleSendMessage(
 	chatService store.ChatServiceInterface,
 	messageService store.MessageServiceInterface,
+	chatWsService ws.ChatServiceInterface,
 	validate *validator.Validate,
 ) utils.APIHandler {
 	type response struct {
-		NewMessage *models.MessageWithUser `json:"newMessage"`
-		Message    string                  `json:"message"`
+		Message string `json:"message"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
@@ -188,12 +190,15 @@ func HandleSendMessage(
 			}
 			return err
 		}
-		_, err = messageService.CreateMessageInChat(chat.ID, c.User.ID, body.Text)
-
+		m, err := messageService.CreateMessageInChat(chat.ID, c.User.ID, body.Text)
 		if err != nil {
 			return nil
 		}
-
+		mwu, err := messageService.EnrichMessageWithUser(m)
+		if err != nil {
+			return err
+		}
+		chatWsService.BroadcastMessage(chatID, mwu)
 		return utils.WriteJson(w, http.StatusCreated, &response{
 			Message: "Message created successfully",
 		})
@@ -228,6 +233,24 @@ func HandleGetChatWithMessages(
 			cwm.Name = chatName
 		}
 		return utils.WriteJson(w, http.StatusOK, cwm)
+	}
+}
+
+func HandleConnectToChat(wsChatService ws.ChatServiceInterface) utils.APIHandler {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+		chatID, err := utils.GetIntParam(r, "chatID")
+		if err != nil {
+			return err
+		}
+		wsChatService.AddChatConn(chatID, c.User.ID, c.Conn)
+		for {
+			_, _, err := c.Conn.ReadMessage()
+			if err != nil {
+				fmt.Println("Closing connection for userID:", c.User.ID)
+				wsChatService.CloseConn(chatID, c.User.ID)
+				return nil
+			}
+		}
 	}
 }
 
