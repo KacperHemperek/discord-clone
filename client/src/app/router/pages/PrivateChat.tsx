@@ -3,13 +3,24 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChatSocketMessageType } from "../../types/chats.ts";
 import { useGroupedMessages } from "../../hooks/useGroupedMessages";
 import { useToast } from "../../hooks/useToast";
-import { api, ChatType, GetChat, Message, QueryKeys } from "@app/api";
+import {
+  api,
+  ChatType,
+  GetChat,
+  Message,
+  QueryKeys,
+  SuccessMessageResponse,
+} from "@app/api";
 import { useAuth } from "../../context/AuthProvider";
 import OneDayChatMessageGroup from "../../components/chats/OneDayChatMessageGroup";
 import { useChatId } from "@app/hooks/useChatId.ts";
+import { useWebsocket } from "@app/api/ws.ts";
+import {
+  NewMessageWsSchema,
+  NewMessageWsType,
+} from "@app/api/wstypes/chats.ts";
 
 const nameChangeSchema = z.object({
   name: z.string().min(1),
@@ -113,92 +124,95 @@ function NameChangeElement({
 export default function PrivateChat() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-
+  const [lastMessageId, setLastMessageId] = React.useState(-1);
+  const [sentMessages, setSentMessages] = React.useState<Message[]>([]);
   const chatId = useChatId();
-  const websocketRef = React.useRef<WebSocket | null>(null);
+
+  function updateLastMessageId() {
+    setLastMessageId((curr) => curr - 1);
+  }
 
   const { data: chatInfo } = useQuery({
     queryKey: QueryKeys.getChat(chatId),
     queryFn: async () => api.get<GetChat>(`/chats/${chatId}`),
   });
 
+  // TODO: handle error when sending messages (revalidate query would be easiest I think)
+  const { mutate: sendMessageMutate } = useMutation({
+    mutationFn: async (message: string) =>
+      api.post<SuccessMessageResponse>(`/chats/${chatId}/messages`, {
+        body: JSON.stringify({
+          text: message,
+        }),
+      }),
+  });
+
   const groupedMessages = useGroupedMessages(chatInfo?.messages ?? []);
 
   const [newMessage, setNewMessage] = React.useState<string>("");
-  // useWebsocket({
-  //   path: `/notifications`,
-  //   onMessage: (event) => {
-  //     const data = JSON.parse(event.data) as ChatsTypes.NewMessageType;
-  //
-  //     if (data.type === ChatSocketMessageType.newMessage) {
-  //       addNewMessageToChat(data);
-  //     }
-  //   },
-  // });
 
-  // function addNewMessageToChat(payload: ChatsTypes.NewMessageType) {
-  //   if (payload.message.sender.id === user?.id) {
-  //     const lastMessage = _sentMessages.at(-1);
-  //
-  //     if (!lastMessage) return;
-  //
-  //     queryClient.setQueryData(
-  //       ["chat", chatId],
-  //       (
-  //         oldData: ChatsTypes.GetChatInfoWithMessagesSuccessResponseType,
-  //       ): ChatsTypes.GetChatInfoWithMessagesSuccessResponseType => {
-  //         const newMessages = oldData.messages.map((m) => {
-  //           if (m.id === lastMessage.id) {
-  //             return payload.message;
-  //           }
-  //           return m;
-  //         });
-  //
-  //         return {
-  //           ...oldData,
-  //           messages: newMessages,
-  //         };
-  //       },
-  //     );
-  //
-  //     setSentMessages((prevSentMessages) => {
-  //       prevSentMessages.pop();
-  //       return prevSentMessages;
-  //     });
-  //   }
-  //
-  //   queryClient.setQueryData(
-  //     ["chat", chatId],
-  //     (
-  //       oldData: ChatsTypes.GetChatInfoWithMessagesSuccessResponseType,
-  //     ): ChatsTypes.GetChatInfoWithMessagesSuccessResponseType => ({
-  //       ...oldData,
-  //       messages: [payload.message, ...oldData.messages],
-  //     }),
-  //   );
-  // }
+  useWebsocket({
+    path: `/chats/${chatId}`,
+    onMessage: (data) => {
+      const newMessageResult = NewMessageWsSchema.safeParse(data);
+      if (newMessageResult.success) {
+        addNewMessageToChat(newMessageResult.data.message);
+      }
+    },
+  });
+
+  function addNewMessageToChat(message: NewMessageWsType["message"]) {
+    if (message.user.id === user?.id) {
+      const lastMessage = sentMessages[sentMessages.length - 1];
+
+      if (!lastMessage) return;
+
+      queryClient.setQueryData(
+        QueryKeys.getChat(chatId),
+        (oldData: GetChat): GetChat => {
+          const newMessages = oldData.messages.map((m) => {
+            if (m.id === lastMessage.id) {
+              return message;
+            }
+            return m;
+          });
+
+          return {
+            ...oldData,
+            messages: newMessages,
+          };
+        },
+      );
+
+      setSentMessages((prevSentMessages) => {
+        prevSentMessages.pop();
+        return prevSentMessages;
+      });
+    }
+
+    queryClient.setQueryData(
+      QueryKeys.getChat(chatId),
+      (oldData: GetChat): GetChat => ({
+        ...oldData,
+        messages: [message, ...oldData.messages],
+      }),
+    );
+  }
 
   function sendMessage(e: React.FormEvent) {
     e.preventDefault();
     const message = newMessage.trim();
 
-    if (!message || !websocketRef.current || !user) return;
-
-    websocketRef.current.send(
-      JSON.stringify({
-        type: ChatSocketMessageType.newMessage,
-        message,
-      }),
-    );
-
+    if (!message || !user) return;
+    sendMessageMutate(message);
     const messageObj: Message = {
-      id: -1,
+      id: lastMessageId,
       text: message,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       user,
     };
-
+    updateLastMessageId();
     queryClient.setQueryData(
       QueryKeys.getChat(chatId),
       (oldData: GetChat): GetChat => ({
@@ -206,10 +220,9 @@ export default function PrivateChat() {
         messages: [messageObj, ...oldData.messages],
       }),
     );
-
-    // setSentMessages((prev) => {
-    //   return [...prev, messageObj];
-    // });
+    setSentMessages((prev) => {
+      return [...prev, messageObj];
+    });
     setNewMessage("");
   }
 

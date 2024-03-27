@@ -5,7 +5,7 @@ import { UpdateAuthTokenSchema } from "@app/api/wstypes/auth.ts";
 
 type UseWebsocketParams = {
   path: string;
-  onMessage?: (ev: MessageEvent<string>) => void;
+  onMessage?: (data: unknown, rawEvent: MessageEvent<string>) => void;
   onClose?: (ev: CloseEvent) => void;
   onOpen?: (ev: Event) => void;
 };
@@ -19,7 +19,7 @@ function getWsUrl(path: string, accessToken: string, refreshToken: string) {
 
 function getData(data: string) {
   try {
-    return JSON.stringify(data);
+    return JSON.parse(data);
   } catch (err) {
     return null;
   }
@@ -57,7 +57,7 @@ export function useWebsocket({
           setRefreshToken(refreshToken);
         }
       }
-      onMessage?.(event);
+      onMessage?.(data, event);
     }
     const ws = connect();
     if (!ws) return;
@@ -79,5 +79,15 @@ export function useWebsocket({
       }
       wsRef.current?.close();
     };
-  }, [accessToken, path, refreshToken]);
+  }, [
+    accessToken,
+    onClose,
+    onMessage,
+    onOpen,
+    path,
+    refreshToken,
+    setAccessToken,
+    setRefreshToken,
+    toast,
+  ]);
 }
