@@ -22,3 +22,20 @@ export type CreateChatResponse = {
   message: string;
   chatId: string;
 };
+
+export type Message = {
+  id: number;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+  user: UserResponse;
+};
+
+export type GetChat = {
+  id: number;
+  name: string;
+  type: ChatType;
+  createdAt: string;
+  updatedAt: string;
+  messages: Array<Message>;
+};

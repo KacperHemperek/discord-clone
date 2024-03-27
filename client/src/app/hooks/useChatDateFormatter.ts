@@ -1,9 +1,9 @@
 import {
-  DAY_IN_MS,
   formatShortDate,
   formatShortTime,
   getDayAtMidnight,
-} from '../utils/dates';
+  Time,
+} from "../utils/dates";
 
 export function useChatMessageDateFormatter(inputDate: Date | string | number) {
   const date = new Date(inputDate);
@@ -18,7 +18,7 @@ export function useChatMessageDateFormatter(inputDate: Date | string | number) {
     return `Today at ${time}`;
   }
 
-  if (day.getTime() === today.getTime() - DAY_IN_MS) {
+  if (day.getTime() === today.getTime() - Time.day) {
     return `Yesterday at ${time}`;
   }
 

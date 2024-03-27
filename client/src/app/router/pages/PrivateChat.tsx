@@ -1,5 +1,4 @@
 import React from "react";
-import { useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,10 +6,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChatSocketMessageType } from "../../types/chats.ts";
 import { useGroupedMessages } from "../../hooks/useGroupedMessages";
 import { useToast } from "../../hooks/useToast";
-import { api } from "@app/api";
+import { api, ChatType, GetChat, Message, QueryKeys } from "@app/api";
 import { useAuth } from "../../context/AuthProvider";
 import OneDayChatMessageGroup from "../../components/chats/OneDayChatMessageGroup";
-import { useWebsocket } from "@app/api/ws.ts";
+import { useChatId } from "@app/hooks/useChatId.ts";
 
 const nameChangeSchema = z.object({
   name: z.string().min(1),
@@ -25,7 +24,7 @@ function NameChangeElement({
   updateChatName,
 }: {
   name: string;
-  chatId: string;
+  chatId: number;
   updateChatName: (name: string) => void;
   disabled?: boolean;
 }) {
@@ -47,10 +46,7 @@ function NameChangeElement({
 
     onMutate: async (inputData) => {
       updateChatName(inputData.name);
-      const oldData =
-        queryClient.getQueryData<ChatsTypes.GetChatsSuccessResponseType>([
-          "chats",
-        ]);
+      const oldData = queryClient.getQueryData(QueryKeys.getAllChats());
 
       if (!oldData) return;
 
@@ -71,12 +67,16 @@ function NameChangeElement({
 
       queryClient.setQueryData(["chats"], newData);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["chats"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: QueryKeys.getAllChats(),
+      });
     },
-    onError: (err) => {
+    onError: async (err) => {
       toast.error(err.message);
-      queryClient.invalidateQueries({ queryKey: ["chats"] });
+      await queryClient.invalidateQueries({
+        queryKey: QueryKeys.getAllChats(),
+      });
 
       if (!oldChatName) return;
 
@@ -90,12 +90,6 @@ function NameChangeElement({
       name,
     },
   });
-
-  React.useEffect(() => {
-    if (name && form.getValues("name") !== name) {
-      form.setValue("name", name);
-    }
-  }, [name, form]);
 
   return (
     <form
@@ -120,77 +114,69 @@ export default function PrivateChat() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { chatId } = useParams<{ chatId: string }>();
+  const chatId = useChatId();
   const websocketRef = React.useRef<WebSocket | null>(null);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_sentMessages, setSentMessages] = React.useState<
-    ChatsTypes.ChatMessage[]
-  >([]);
 
   const { data: chatInfo } = useQuery({
     queryKey: ["chat", chatId],
-    queryFn: async () =>
-      api.get<ChatsTypes.GetChatInfoWithMessagesSuccessResponseType>(
-        `/chats/${chatId}`,
-      ),
+    queryFn: async () => api.get<GetChat>(`/chats/${chatId}`),
   });
 
   const groupedMessages = useGroupedMessages(chatInfo?.messages ?? []);
 
   const [newMessage, setNewMessage] = React.useState<string>("");
-  useWebsocket({
-    path: `/notifications`,
-    onMessage: (event) => {
-      const data = JSON.parse(event.data) as ChatsTypes.NewMessageType;
+  // useWebsocket({
+  //   path: `/notifications`,
+  //   onMessage: (event) => {
+  //     const data = JSON.parse(event.data) as ChatsTypes.NewMessageType;
+  //
+  //     if (data.type === ChatSocketMessageType.newMessage) {
+  //       addNewMessageToChat(data);
+  //     }
+  //   },
+  // });
 
-      if (data.type === ChatSocketMessageType.newMessage) {
-        addNewMessageToChat(data);
-      }
-    },
-  });
-
-  function addNewMessageToChat(payload: ChatsTypes.NewMessageType) {
-    if (payload.message.sender.id === user?.id) {
-      const lastMessage = _sentMessages.at(-1);
-
-      if (!lastMessage) return;
-
-      queryClient.setQueryData(
-        ["chat", chatId],
-        (
-          oldData: ChatsTypes.GetChatInfoWithMessagesSuccessResponseType,
-        ): ChatsTypes.GetChatInfoWithMessagesSuccessResponseType => {
-          const newMessages = oldData.messages.map((m) => {
-            if (m.id === lastMessage.id) {
-              return payload.message;
-            }
-            return m;
-          });
-
-          return {
-            ...oldData,
-            messages: newMessages,
-          };
-        },
-      );
-
-      setSentMessages((prevSentMessages) => {
-        prevSentMessages.pop();
-        return prevSentMessages;
-      });
-    }
-
-    queryClient.setQueryData(
-      ["chat", chatId],
-      (
-        oldData: ChatsTypes.GetChatInfoWithMessagesSuccessResponseType,
-      ): ChatsTypes.GetChatInfoWithMessagesSuccessResponseType => ({
-        ...oldData,
-        messages: [payload.message, ...oldData.messages],
-      }),
-    );
-  }
+  // function addNewMessageToChat(payload: ChatsTypes.NewMessageType) {
+  //   if (payload.message.sender.id === user?.id) {
+  //     const lastMessage = _sentMessages.at(-1);
+  //
+  //     if (!lastMessage) return;
+  //
+  //     queryClient.setQueryData(
+  //       ["chat", chatId],
+  //       (
+  //         oldData: ChatsTypes.GetChatInfoWithMessagesSuccessResponseType,
+  //       ): ChatsTypes.GetChatInfoWithMessagesSuccessResponseType => {
+  //         const newMessages = oldData.messages.map((m) => {
+  //           if (m.id === lastMessage.id) {
+  //             return payload.message;
+  //           }
+  //           return m;
+  //         });
+  //
+  //         return {
+  //           ...oldData,
+  //           messages: newMessages,
+  //         };
+  //       },
+  //     );
+  //
+  //     setSentMessages((prevSentMessages) => {
+  //       prevSentMessages.pop();
+  //       return prevSentMessages;
+  //     });
+  //   }
+  //
+  //   queryClient.setQueryData(
+  //     ["chat", chatId],
+  //     (
+  //       oldData: ChatsTypes.GetChatInfoWithMessagesSuccessResponseType,
+  //     ): ChatsTypes.GetChatInfoWithMessagesSuccessResponseType => ({
+  //       ...oldData,
+  //       messages: [payload.message, ...oldData.messages],
+  //     }),
+  //   );
+  // }
 
   function sendMessage(e: React.FormEvent) {
     e.preventDefault();
@@ -205,36 +191,32 @@ export default function PrivateChat() {
       }),
     );
 
-    const messageObj: ChatsTypes.ChatMessage = {
-      id: window.crypto.randomUUID(),
+    const messageObj: Message = {
+      id: -1,
       text: message,
       createdAt: new Date().toISOString(),
-      sender: user,
-      image: null,
+      updatedAt: new Date().toISOString(),
+      user,
     };
 
     queryClient.setQueryData(
-      ["chat", chatId],
-      (
-        oldData: ChatsTypes.GetChatInfoWithMessagesSuccessResponseType,
-      ): ChatsTypes.GetChatInfoWithMessagesSuccessResponseType => ({
+      QueryKeys.getChat(chatId),
+      (oldData: GetChat): GetChat => ({
         ...oldData,
         messages: [messageObj, ...oldData.messages],
       }),
     );
 
-    setSentMessages((prev) => {
-      return [...prev, messageObj];
-    });
+    // setSentMessages((prev) => {
+    //   return [...prev, messageObj];
+    // });
     setNewMessage("");
   }
 
   function updateChatName(name: string) {
     queryClient.setQueryData(
-      ["chat", chatId],
-      (
-        oldData: ChatsTypes.GetChatInfoWithMessagesSuccessResponseType,
-      ): ChatsTypes.GetChatInfoWithMessagesSuccessResponseType => ({
+      QueryKeys.getChat(chatId),
+      (oldData: GetChat): GetChat => ({
         ...oldData,
         name,
       }),
@@ -243,24 +225,20 @@ export default function PrivateChat() {
 
   if (!chatInfo) return null;
 
-  const chatName = chatInfo.name
-    ? chatInfo.name
-    : !!user && chatInfo.users.find((u) => u.id !== user.id)!.username;
-
   const placeholder =
-    chatInfo.type === ChatTypes.private
-      ? `Message @${chatName}`
-      : `Message ${chatName}`;
+    chatInfo.type === ChatType.PRIVATE
+      ? `Message @${chatInfo.name}`
+      : `Message ${chatInfo.name}`;
 
   return (
     <div className="max-h-screen h-full flex-grow flex">
       <div className="flex-grow flex flex-col">
         <nav className="border-b flex border-dc-neutral-1000 w-full p-3 gap-4">
-          {!!chatName && !!chatId && (
+          {!!chatInfo.name && !!chatId && (
             <NameChangeElement
-              name={chatName}
+              name={chatInfo.name}
+              disabled={chatInfo.type === ChatType.PRIVATE}
               chatId={chatId}
-              disabled={chatInfo.type === ChatTypes.private}
               updateChatName={updateChatName}
             />
           )}

@@ -14,4 +14,8 @@ export class QueryKeys {
   static getAllChats() {
     return ["chats"];
   }
+
+  static getChat(chatId: number) {
+    return ["chat", chatId];
+  }
 }
