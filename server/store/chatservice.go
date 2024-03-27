@@ -191,7 +191,8 @@ func (s *ChatService) EnrichChatWithMessages(chat *models.Chat) (*models.ChatWit
 		       u.password,
 		       u.created_at, 
 		       u.updated_at 
-		FROM messages m JOIN users u on u.id = m.sender_id WHERE m.chat_id = $1`,
+		FROM messages m JOIN users u on u.id = m.sender_id  WHERE m.chat_id = $1 
+		ORDER BY m.created_at DESC`,
 		chat.ID,
 	)
 	if err != nil {
