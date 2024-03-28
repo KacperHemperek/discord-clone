@@ -79,15 +79,5 @@ export function useWebsocket({
       }
       wsRef.current?.close();
     };
-  }, [
-    accessToken,
-    onClose,
-    onMessage,
-    onOpen,
-    path,
-    refreshToken,
-    setAccessToken,
-    setRefreshToken,
-    toast,
-  ]);
+  }, [accessToken, path, refreshToken]);
 }
