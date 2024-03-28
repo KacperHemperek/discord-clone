@@ -20,6 +20,7 @@ type ChatServiceInterface interface {
 	GetChatByID(chatID int) (*models.Chat, error)
 	EnrichChatWithMessages(chat *models.Chat) (*models.ChatWithMessages, error)
 	GetUsersFromChat(chatID int) ([]*models.User, error)
+	UpdateChatName(chatID int, newName string) error
 }
 
 func (s *ChatService) GetPrivateChatByUserIDs(userOneID, userTwoID int) (*models.Chat, error) {
@@ -231,6 +232,15 @@ func (s *ChatService) GetUsersFromChat(chatID int) ([]*models.User, error) {
 		users = append(users, user)
 	}
 	return users, nil
+}
+
+func (s *ChatService) UpdateChatName(chatID int, newName string) error {
+	_, err := s.db.Exec(
+		"UPDATE chats SET name = $1, updated_at=current_timestamp WHERE id = $2",
+		newName,
+		chatID,
+	)
+	return err
 }
 
 func NewChatService(db *Database) *ChatService {

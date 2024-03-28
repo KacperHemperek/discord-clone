@@ -198,7 +198,10 @@ func HandleSendMessage(
 		if err != nil {
 			return err
 		}
-		chatWsService.BroadcastMessage(chatID, mwu)
+		err = chatWsService.BroadcastNewMessage(chatID, mwu)
+		if err != nil {
+			return err
+		}
 		return utils.WriteJson(w, http.StatusCreated, &response{
 			Message: "Message created successfully",
 		})
@@ -247,10 +250,68 @@ func HandleConnectToChat(wsChatService ws.ChatServiceInterface) utils.APIHandler
 			_, _, err := c.Conn.ReadMessage()
 			if err != nil {
 				fmt.Println("Closing connection for userID:", c.User.ID)
-				wsChatService.CloseConn(chatID, c.User.ID)
-				return nil
+				return wsChatService.CloseConn(chatID, c.User.ID)
 			}
 		}
+	}
+}
+
+func HandleUpdateChatName(chatService store.ChatServiceInterface, chatWsService ws.ChatServiceInterface, validate *validator.Validate) utils.APIHandler {
+	type request struct {
+		NewName string `json:"newName" validate:"min=6,max=32"`
+	}
+
+	type response struct {
+		Message string `json:"message"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+		chatID, err := utils.GetIntParam(r, "chatID")
+		if err != nil {
+			return err
+		}
+		body := &request{}
+		if err := utils.ReadAndValidateBody(r, body, validate); err != nil {
+			return &utils.APIError{
+				Code:    http.StatusBadRequest,
+				Message: "Request body is on valid",
+			}
+		}
+		chat, err := chatService.GetChatByID(chatID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return &utils.APIError{
+					Code:    http.StatusNotFound,
+					Message: "Chat not found",
+				}
+			}
+			return err
+		}
+		if chat.Type == "private" {
+			return &utils.APIError{
+				Code:    http.StatusBadRequest,
+				Message: "You cannot change name of private chat",
+			}
+		}
+		users, err := chatService.GetUsersFromChat(chat.ID)
+		userIsMember := slices.ContainsFunc(users, func(user *models.User) bool {
+			return user.ID == c.User.ID
+		})
+		if !userIsMember {
+			return &utils.APIError{
+				Code:    http.StatusForbidden,
+				Message: "User can't update name of chat he is not a part of",
+			}
+		}
+		err = chatService.UpdateChatName(chatID, body.NewName)
+		if err != nil {
+			return err
+		}
+		err = chatWsService.BroadcastNewChatName(chatID, body.NewName)
+		if err != nil {
+			return nil
+		}
+		return utils.WriteJson(w, http.StatusOK, &response{Message: "Chat name updated successfully"})
 	}
 }
 

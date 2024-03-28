@@ -44,6 +44,8 @@ func setupRoutes(
 	mux.HandleFunc("/chats/group", utils.HandlerFunc(authMiddleware(handlers.HandleCreateGroupChat(chatService, userService, v)))).Methods(http.MethodPost)
 	mux.HandleFunc("/chats/{chatID}/messages", utils.HandlerFunc(authMiddleware(handlers.HandleSendMessage(chatService, messageService, chatWsService, v)))).Methods(http.MethodPost)
 	mux.HandleFunc("/chats/{chatID}", utils.HandlerFunc(authMiddleware(handlers.HandleGetChatWithMessages(chatService)))).Methods(http.MethodGet)
+	mux.HandleFunc("/chats/{chatID}/update-name", utils.HandlerFunc(authMiddleware(handlers.HandleUpdateChatName(chatService, chatWsService, v)))).Methods(http.MethodPut)
+
 	mux.HandleFunc("/ws/chats/{chatID}", utils.HandlerFunc(wsAuthMiddleware(handlers.HandleConnectToChat(chatWsService)))).Methods(http.MethodGet)
 
 	mux.HandleFunc(
