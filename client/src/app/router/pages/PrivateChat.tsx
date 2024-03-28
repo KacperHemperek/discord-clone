@@ -8,6 +8,7 @@ import { useToast } from "../../hooks/useToast";
 import {
   api,
   ChatType,
+  GetAllChats,
   GetChat,
   Message,
   QueryKeys,
@@ -18,12 +19,14 @@ import OneDayChatMessageGroup from "../../components/chats/OneDayChatMessageGrou
 import { useChatId } from "@app/hooks/useChatId.ts";
 import { useWebsocket } from "@app/api/ws.ts";
 import {
+  ChatNameUpdatedWsSchema,
   NewMessageWsSchema,
   NewMessageWsType,
 } from "@app/api/wstypes/chats.ts";
+import { ClientError } from "@app/utils/clientError.ts";
 
 const nameChangeSchema = z.object({
-  name: z.string().min(1),
+  newName: z.string(),
 });
 
 type NameChangeFormData = z.infer<typeof nameChangeSchema>;
@@ -43,21 +46,20 @@ function NameChangeElement({
 
   const queryClient = useQueryClient();
   const toast = useToast();
-  const { mutate, isPending } = useMutation({
+  const { mutate, isPending } = useMutation<
+    SuccessMessageResponse,
+    ClientError,
+    NameChangeFormData
+  >({
     mutationFn: async (data: NameChangeFormData) =>
-      api.put<ChatsTypes.UpdateChatNameSuccessResponseType>(
-        `/chats/${chatId}/update-name`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        },
-      ),
-
+      api.put<SuccessMessageResponse>(`/chats/${chatId}/update-name`, {
+        body: JSON.stringify(data),
+      }),
     onMutate: async (inputData) => {
-      updateChatName(inputData.name);
-      const oldData = queryClient.getQueryData(QueryKeys.getAllChats());
+      updateChatName(inputData.newName);
+      const oldData = queryClient.getQueryData<GetAllChats>(
+        QueryKeys.getAllChats(),
+      );
 
       if (!oldData) return;
 
@@ -65,18 +67,18 @@ function NameChangeElement({
         if (c.id === chatId) {
           return {
             ...c,
-            name: inputData.name,
+            name: inputData.newName,
           };
         }
 
         return c;
       });
 
-      const newData: ChatsTypes.GetChatsSuccessResponseType = {
+      const newData: GetAllChats = {
         chats: newChatList,
       };
 
-      queryClient.setQueryData(["chats"], newData);
+      queryClient.setQueryData(QueryKeys.getAllChats(), newData);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({
@@ -84,7 +86,11 @@ function NameChangeElement({
       });
     },
     onError: async (err) => {
-      toast.error(err.message);
+      if (err.code === 400) {
+        toast.error("New chat name must be between 6 and 32 characters");
+      } else {
+        toast.error("Unknown error when changing chat name");
+      }
       await queryClient.invalidateQueries({
         queryKey: QueryKeys.getAllChats(),
       });
@@ -98,9 +104,13 @@ function NameChangeElement({
   const form = useForm<NameChangeFormData>({
     resolver: zodResolver(nameChangeSchema),
     defaultValues: {
-      name,
+      newName: name,
     },
   });
+
+  React.useEffect(() => {
+    form.setValue("newName", name);
+  }, [chatId, name, form]);
 
   return (
     <form
@@ -111,9 +121,9 @@ function NameChangeElement({
     >
       <input
         type="text"
-        {...form.register("name")}
+        {...form.register("newName")}
         className="px-2 rounded-md bg-transparent border ring-0 border-transparent font-semibold hover:border-dc-neutral-950 focus:bg-dc-neutral-950 focus:border-dc-neutral-1000 disabled:hover:bg-transparent disabled:hover:border-transparent disabled:cursor-text"
-        size={form.watch("name").length}
+        size={form.watch("newName").length}
         disabled={disabled || isPending}
       />
       <button className="hidden" type="submit" />
@@ -127,6 +137,7 @@ export default function PrivateChat() {
   const [lastMessageId, setLastMessageId] = React.useState(-1);
   const [sentMessages, setSentMessages] = React.useState<Message[]>([]);
   const chatId = useChatId();
+  const toast = useToast();
 
   function updateLastMessageId() {
     setLastMessageId((curr) => curr - 1);
@@ -137,14 +148,22 @@ export default function PrivateChat() {
     queryFn: async () => api.get<GetChat>(`/chats/${chatId}`),
   });
 
-  // TODO: handle error when sending messages (revalidate query would be easiest I think)
   const { mutate: sendMessageMutate } = useMutation({
-    mutationFn: async (message: string) =>
+    mutationFn: async (params: { message: string; lastMessageId: number }) =>
       api.post<SuccessMessageResponse>(`/chats/${chatId}/messages`, {
         body: JSON.stringify({
-          text: message,
+          text: params.message,
         }),
       }),
+    onError: async (_, params) => {
+      toast.error("Could not send message");
+      setSentMessages((currMessages) => {
+        return currMessages.filter((m) => m.id != params.lastMessageId);
+      });
+      await queryClient.invalidateQueries({
+        queryKey: QueryKeys.getChat(chatId),
+      });
+    },
   });
 
   const groupedMessages = useGroupedMessages(chatInfo?.messages ?? []);
@@ -158,8 +177,34 @@ export default function PrivateChat() {
       if (newMessageResult.success) {
         addNewMessageToChat(newMessageResult.data.message);
       }
+      const chatNameUpdateResult = ChatNameUpdatedWsSchema.safeParse(data);
+      if (chatNameUpdateResult.success) {
+        updateChatNameFromWs(chatNameUpdateResult.data.newName);
+      }
     },
   });
+
+  function updateChatNameFromWs(newChatName: string) {
+    queryClient.setQueryData(
+      QueryKeys.getChat(chatId),
+      (oldChatInfo: GetChat): GetChat => {
+        return {
+          ...oldChatInfo,
+          name: newChatName,
+        };
+      },
+    );
+    queryClient.setQueryData(
+      QueryKeys.getAllChats(),
+      (oldGetChatsResponse: GetAllChats): GetAllChats => {
+        return {
+          chats: oldGetChatsResponse.chats.map((chat) =>
+            chat.id === chatId ? { ...chat, name: newChatName } : chat,
+          ),
+        };
+      },
+    );
+  }
 
   function addNewMessageToChat(message: NewMessageWsType["message"]) {
     if (message.user.id === user?.id) {
@@ -184,9 +229,8 @@ export default function PrivateChat() {
         },
       );
 
-      setSentMessages((prevSentMessages) => {
-        prevSentMessages.pop();
-        return prevSentMessages;
+      setSentMessages((currMessages) => {
+        return currMessages.filter((m) => m.id != lastMessageId);
       });
     }
 
@@ -204,7 +248,7 @@ export default function PrivateChat() {
     const message = newMessage.trim();
 
     if (!message || !user) return;
-    sendMessageMutate(message);
+    sendMessageMutate({ message, lastMessageId });
     const messageObj: Message = {
       id: lastMessageId,
       text: message,

@@ -20,3 +20,8 @@ export const NewMessageWsSchema = z.object({
 });
 
 export type NewMessageWsType = z.infer<typeof NewMessageWsSchema>;
+
+export const ChatNameUpdatedWsSchema = z.object({
+  type: z.literal(WsMessages.chatNameUpdated),
+  newName: z.string(),
+});
