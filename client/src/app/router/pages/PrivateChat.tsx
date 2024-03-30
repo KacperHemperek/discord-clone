@@ -10,7 +10,6 @@ import {
   ChatType,
   GetAllChats,
   GetChat,
-  Message,
   QueryKeys,
   SuccessMessageResponse,
 } from "@app/api";
@@ -24,6 +23,7 @@ import {
   NewMessageWsType,
 } from "@app/api/wstypes/chats.ts";
 import { ClientError } from "@app/utils/clientError.ts";
+import { cn } from "@app/utils/cn.ts";
 
 const nameChangeSchema = z.object({
   newName: z.string(),
@@ -134,45 +134,76 @@ function NameChangeElement({
 export default function PrivateChat() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [lastMessageId, setLastMessageId] = React.useState(-1);
-  const [sentMessages, setSentMessages] = React.useState<Message[]>([]);
+  const [newMessage, setNewMessage] = React.useState<string>("");
+
   const chatId = useChatId();
   const toast = useToast();
-
-  function updateLastMessageId() {
-    setLastMessageId((curr) => curr - 1);
-  }
+  const wsRef = React.useRef<WebSocket | null>(null);
 
   const { data: chatInfo } = useQuery({
     queryKey: QueryKeys.getChat(chatId),
     queryFn: async () => api.get<GetChat>(`/chats/${chatId}`),
   });
 
-  const { mutate: sendMessageMutate } = useMutation({
-    mutationFn: async (params: { message: string; lastMessageId: number }) =>
-      api.post<SuccessMessageResponse>(`/chats/${chatId}/messages`, {
-        body: JSON.stringify({
-          text: params.message,
+  const { mutate: sendMessageMutate, isPending: isSendingMessage } =
+    useMutation({
+      mutationFn: async (params: { message: string }) =>
+        api.post<SuccessMessageResponse>(`/chats/${chatId}/messages`, {
+          body: JSON.stringify({
+            text: params.message,
+          }),
         }),
-      }),
-    onError: async (_, params) => {
-      toast.error("Could not send message");
-      setSentMessages((currMessages) => {
-        return currMessages.filter((m) => m.id != params.lastMessageId);
-      });
-      await queryClient.invalidateQueries({
-        queryKey: QueryKeys.getChat(chatId),
-      });
-    },
-  });
+      onError: async () => {
+        toast.error("Could not send message");
+        await queryClient.invalidateQueries({
+          queryKey: QueryKeys.getChat(chatId),
+        });
+      },
+    });
 
   const groupedMessages = useGroupedMessages(chatInfo?.messages ?? []);
+  const { handleMessage, connect } = useWebsocket();
 
-  const [newMessage, setNewMessage] = React.useState<string>("");
+  const updateChatNameFromWs = React.useCallback(
+    (newChatName: string) => {
+      queryClient.setQueryData(
+        QueryKeys.getChat(chatId),
+        (oldChatInfo: GetChat): GetChat => {
+          return {
+            ...oldChatInfo,
+            name: newChatName,
+          };
+        },
+      );
+      queryClient.setQueryData(
+        QueryKeys.getAllChats(),
+        (oldGetChatsResponse: GetAllChats): GetAllChats => {
+          return {
+            chats: oldGetChatsResponse.chats.map((chat) =>
+              chat.id === chatId ? { ...chat, name: newChatName } : chat,
+            ),
+          };
+        },
+      );
+    },
+    [chatId, queryClient],
+  );
 
-  useWebsocket({
-    path: `/chats/${chatId}`,
-    onMessage: (data) => {
+  const addNewMessageToChat = React.useCallback(
+    (message: NewMessageWsType["message"]) => {
+      queryClient.setQueryData(
+        QueryKeys.getChat(chatId),
+        (oldData: GetChat): GetChat => {
+          oldData.messages.unshift(message);
+          return oldData;
+        },
+      );
+    },
+    [chatId, queryClient],
+  );
+
+  const onMessage = React.useCallback(
+    (data: unknown) => {
       const newMessageResult = NewMessageWsSchema.safeParse(data);
       if (newMessageResult.success) {
         addNewMessageToChat(newMessageResult.data.message);
@@ -182,91 +213,35 @@ export default function PrivateChat() {
         updateChatNameFromWs(chatNameUpdateResult.data.newName);
       }
     },
-  });
+    [addNewMessageToChat, updateChatNameFromWs],
+  );
 
-  function updateChatNameFromWs(newChatName: string) {
-    queryClient.setQueryData(
-      QueryKeys.getChat(chatId),
-      (oldChatInfo: GetChat): GetChat => {
-        return {
-          ...oldChatInfo,
-          name: newChatName,
-        };
-      },
+  React.useEffect(() => {
+    const messageHandler = handleMessage(onMessage);
+    wsRef.current = connect(
+      `/chats/${chatId}`,
+      "Could not connect to chat, please try again later",
     );
-    queryClient.setQueryData(
-      QueryKeys.getAllChats(),
-      (oldGetChatsResponse: GetAllChats): GetAllChats => {
-        return {
-          chats: oldGetChatsResponse.chats.map((chat) =>
-            chat.id === chatId ? { ...chat, name: newChatName } : chat,
-          ),
-        };
-      },
-    );
-  }
 
-  function addNewMessageToChat(message: NewMessageWsType["message"]) {
-    if (message.user.id === user?.id) {
-      const lastMessage = sentMessages[sentMessages.length - 1];
-
-      if (!lastMessage) return;
-
-      queryClient.setQueryData(
-        QueryKeys.getChat(chatId),
-        (oldData: GetChat): GetChat => {
-          const newMessages = oldData.messages.map((m) => {
-            if (m.id === lastMessage.id) {
-              return message;
-            }
-            return m;
-          });
-
-          return {
-            ...oldData,
-            messages: newMessages,
-          };
-        },
-      );
-
-      setSentMessages((currMessages) => {
-        return currMessages.filter((m) => m.id != lastMessageId);
-      });
+    if (wsRef.current) {
+      wsRef.current.addEventListener("message", messageHandler);
     }
 
-    queryClient.setQueryData(
-      QueryKeys.getChat(chatId),
-      (oldData: GetChat): GetChat => ({
-        ...oldData,
-        messages: [message, ...oldData.messages],
-      }),
-    );
-  }
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [chatId]);
 
   function sendMessage(e: React.FormEvent) {
+    if (isSendingMessage) return;
+
     e.preventDefault();
     const message = newMessage.trim();
 
     if (!message || !user) return;
-    sendMessageMutate({ message, lastMessageId });
-    const messageObj: Message = {
-      id: lastMessageId,
-      text: message,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      user,
-    };
-    updateLastMessageId();
-    queryClient.setQueryData(
-      QueryKeys.getChat(chatId),
-      (oldData: GetChat): GetChat => ({
-        ...oldData,
-        messages: [messageObj, ...oldData.messages],
-      }),
-    );
-    setSentMessages((prev) => {
-      return [...prev, messageObj];
-    });
+    sendMessageMutate({ message });
     setNewMessage("");
   }
 
@@ -310,7 +285,13 @@ export default function PrivateChat() {
             />
           ))}
         </div>
-        <form onSubmit={sendMessage} className="w-full flex pt-0 pb-4 px-4">
+        <form
+          onSubmit={sendMessage}
+          className={cn(
+            "w-full flex pt-0 pb-4 px-4",
+            isSendingMessage && "opacity-70",
+          )}
+        >
           <input
             className="w-full p-2 rounded-md bg-dc-neutral-1000 outline-none"
             placeholder={placeholder}
