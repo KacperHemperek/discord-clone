@@ -25,6 +25,22 @@ func ReadAndValidateBody(r *http.Request, v interface{}, validate *validator.Val
 	return validate.Struct(v)
 }
 
+func WsHandler(handler APIHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer logRequest(r, time.Now())
+
+		handlerErr := handler(w, r, &Context{})
+		if handlerErr != nil {
+			var err *APIError
+			if errors.As(handlerErr, &err) {
+				logApiError(err, r)
+				return
+			}
+			logError(handlerErr, r)
+		}
+	}
+}
+
 func HandlerFunc(handler APIHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer logRequest(r, time.Now())
