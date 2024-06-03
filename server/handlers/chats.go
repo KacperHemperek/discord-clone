@@ -245,14 +245,15 @@ func HandleConnectToChat(wsChatService ws.ChatServiceInterface) utils.APIHandler
 		if err != nil {
 			return err
 		}
-		wsChatService.AddChatConn(chatID, c.User.ID, c.Conn)
+		connID := wsChatService.AddChatConn(chatID, c.Conn)
 		for {
 			_, _, err := c.Conn.ReadMessage()
 			if err != nil {
-				fmt.Println("Closing connection for userID:", c.User.ID)
-				return wsChatService.CloseConn(chatID, c.User.ID)
+				break
 			}
 		}
+		fmt.Println("Closing connection for userID:", c.User.ID)
+		return wsChatService.CloseConn(chatID, connID)
 	}
 }
 

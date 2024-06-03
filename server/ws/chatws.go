@@ -2,6 +2,7 @@ package ws
 
 import (
 	"errors"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/kacperhemperek/discord-go/models"
 	"sync"
@@ -12,29 +13,31 @@ var (
 )
 
 type ChatServiceInterface interface {
-	AddChatConn(chatID, userID int, conn *websocket.Conn)
+	AddChatConn(chatID int, conn *websocket.Conn) string
 	BroadcastNewMessage(chatID int, message *models.MessageWithUser) error
 	BroadcastNewChatName(chatID int, name string) error
-	CloseConn(chatID, userID int) error
+	CloseConn(chatID int, connID string) error
 }
 
 type ChatService struct {
-	chats     map[int]map[int]*websocket.Conn
+	chats     map[int]map[string]*websocket.Conn
 	chatsLock sync.RWMutex
 }
 
-func (s *ChatService) AddChatConn(chatID, userID int, conn *websocket.Conn) {
+func (s *ChatService) AddChatConn(chatID int, conn *websocket.Conn) string {
 	s.chatsLock.Lock()
-	_, ok := s.chats[chatID]
+	_, chatFound := s.chats[chatID]
 	defer s.chatsLock.Unlock()
-	if !ok {
-		newConns := map[int]*websocket.Conn{
-			userID: conn,
+	connID := uuid.New().String()
+	if !chatFound {
+		newConns := map[string]*websocket.Conn{
+			connID: conn,
 		}
 		s.chats[chatID] = newConns
 	} else {
-		s.chats[chatID][userID] = conn
+		s.chats[chatID][connID] = conn
 	}
+	return connID
 }
 
 func (s *ChatService) BroadcastNewMessage(chatID int, message *models.MessageWithUser) error {
@@ -47,18 +50,18 @@ func (s *ChatService) BroadcastNewChatName(chatID int, name string) error {
 	return s.broadcastMessage(chatID, changeNameMessage)
 }
 
-func (s *ChatService) CloseConn(chatID, userID int) error {
+func (s *ChatService) CloseConn(chatID int, connID string) error {
 	s.chatsLock.Lock()
 	defer s.chatsLock.Unlock()
 	chatConns, chatFound := s.chats[chatID]
 	if chatFound {
-		conn, connFound := chatConns[userID]
+		conn, connFound := chatConns[connID]
 		if connFound {
 			err := conn.Close()
-			delete(chatConns, userID)
 			if err != nil {
 				return err
 			}
+			delete(chatConns, connID)
 		}
 	}
 	return ChatNotFound
@@ -76,7 +79,7 @@ func (s *ChatService) broadcastMessage(chatID int, message any) error {
 
 func NewChatService() *ChatService {
 	return &ChatService{
-		chats:     make(map[int]map[int]*websocket.Conn),
+		chats:     make(map[int]map[string]*websocket.Conn),
 		chatsLock: sync.RWMutex{},
 	}
 }
