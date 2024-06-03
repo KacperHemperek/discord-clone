@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/gorilla/websocket"
 	"github.com/kacperhemperek/discord-go/models"
+	"sync"
 )
 
 var (
@@ -18,11 +19,14 @@ type ChatServiceInterface interface {
 }
 
 type ChatService struct {
-	chats map[int]map[int]*websocket.Conn
+	chats     map[int]map[int]*websocket.Conn
+	chatsLock sync.RWMutex
 }
 
 func (s *ChatService) AddChatConn(chatID, userID int, conn *websocket.Conn) {
+	s.chatsLock.Lock()
 	_, ok := s.chats[chatID]
+	defer s.chatsLock.Unlock()
 	if !ok {
 		newConns := map[int]*websocket.Conn{
 			userID: conn,
@@ -44,6 +48,8 @@ func (s *ChatService) BroadcastNewChatName(chatID int, name string) error {
 }
 
 func (s *ChatService) CloseConn(chatID, userID int) error {
+	s.chatsLock.Lock()
+	defer s.chatsLock.Unlock()
 	chatConns, chatFound := s.chats[chatID]
 	if chatFound {
 		conn, connFound := chatConns[userID]
@@ -59,6 +65,8 @@ func (s *ChatService) CloseConn(chatID, userID int) error {
 }
 
 func (s *ChatService) broadcastMessage(chatID int, message any) error {
+	s.chatsLock.Lock()
+	defer s.chatsLock.Unlock()
 	chatConns, chatFound := s.chats[chatID]
 	if !chatFound {
 		return ChatNotFound
@@ -74,7 +82,8 @@ func (s *ChatService) broadcastMessage(chatID int, message any) error {
 
 func NewChatService() *ChatService {
 	return &ChatService{
-		chats: make(map[int]map[int]*websocket.Conn),
+		chats:     make(map[int]map[int]*websocket.Conn),
+		chatsLock: sync.RWMutex{},
 	}
 }
 
