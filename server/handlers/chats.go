@@ -309,7 +309,7 @@ func HandleUpdateChatName(chatService store.ChatServiceInterface, chatWsService 
 		}
 		err = chatWsService.BroadcastNewChatName(chatID, body.NewName)
 		if err != nil {
-			return nil
+			return err
 		}
 		return utils.WriteJson(w, http.StatusOK, &response{Message: "Chat name updated successfully"})
 	}
