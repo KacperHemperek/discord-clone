@@ -220,8 +220,7 @@ export default function PrivateChat() {
       queryClient.setQueryData(
         QueryKeys.getChat(chatId),
         (oldData: GetChat): GetChat => {
-          oldData.messages.unshift(message);
-          return oldData;
+          return { ...oldData, messages: [message, ...oldData.messages] };
         },
       );
     },
