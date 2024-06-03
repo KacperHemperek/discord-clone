@@ -71,13 +71,7 @@ func (s *ChatService) broadcastMessage(chatID int, message any) error {
 	if !chatFound {
 		return ChatNotFound
 	}
-	for _, conn := range chatConns {
-		err := conn.WriteJSON(message)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return broadcast(message, chatConns)
 }
 
 func NewChatService() *ChatService {

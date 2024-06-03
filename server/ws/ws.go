@@ -11,13 +11,19 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+func broadcast[K string | int](message any, conns map[K]*websocket.Conn) error {
+	for _, conn := range conns {
+		err := conn.WriteJSON(message)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type WS struct {
 	OnMessage func(conn *websocket.Conn, msg []byte)
 	OnClose   func(conn *websocket.Conn)
-}
-
-func NewWS() *WS {
-	return &WS{}
 }
 
 func (ws *WS) Serve(w http.ResponseWriter, r *http.Request) {
