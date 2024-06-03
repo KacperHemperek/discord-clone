@@ -3,8 +3,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useGroupedMessages } from "../../hooks/useGroupedMessages";
-import { useToast } from "../../hooks/useToast";
+import { useGroupedMessages } from "@app/hooks/useGroupedMessages";
+import { useToast } from "@app/hooks/useToast";
 import {
   api,
   ChatType,
@@ -13,8 +13,8 @@ import {
   QueryKeys,
   SuccessMessageResponse,
 } from "@app/api";
-import { useAuth } from "../../context/AuthProvider";
-import OneDayChatMessageGroup from "../../components/chats/OneDayChatMessageGroup";
+import { useAuth } from "@app/context/AuthProvider";
+import OneDayChatMessageGroup from "@app/components/chats/OneDayChatMessageGroup";
 import { useChatId } from "@app/hooks/useChatId.ts";
 import { useWebsocket } from "@app/api/ws.ts";
 import {
@@ -24,6 +24,7 @@ import {
 } from "@app/api/wstypes/chats.ts";
 import { ClientError } from "@app/utils/clientError.ts";
 import { cn } from "@app/utils/cn.ts";
+import { MessageCircle } from "lucide-react";
 
 const nameChangeSchema = z.object({
   newName: z.string(),
@@ -131,6 +132,31 @@ function NameChangeElement({
   );
 }
 
+type SendHelloMessageListProps = {
+  sendMessage: (message: string) => void;
+};
+
+function SendHelloMessageList({ sendMessage }: SendHelloMessageListProps) {
+  const helloMessages = [
+    "Hi guys how it's going 👋",
+    "Hi y'all nice to meet you 👋",
+    "Hello people how are you 👋",
+  ];
+
+  return (
+    <div className="flex flex-col max-w-96 w-full gap-2">
+      {helloMessages.map((message) => (
+        <button
+          className="text-left border border-dc-neutral-700 rounded-sm px-4 py-2 hover:bg-dc-neutral-850 hover:opacity-95 transition"
+          onClick={() => sendMessage(message)}
+        >
+          {message}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function PrivateChat() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -235,9 +261,9 @@ export default function PrivateChat() {
   }, [chatId]);
 
   function sendMessage(e: React.FormEvent) {
+    e.preventDefault();
     if (isSendingMessage) return;
 
-    e.preventDefault();
     const message = newMessage.trim();
 
     if (!message || !user) return;
@@ -276,15 +302,34 @@ export default function PrivateChat() {
           )}
         </nav>
 
-        <div className="flex flex-col-reverse flex-grow overflow-y-scroll px-4 py-6">
-          {groupedMessages.map(({ date, messages }) => (
-            <OneDayChatMessageGroup
-              key={date.getTime()}
-              date={date}
-              messages={messages}
+        {groupedMessages.length === 0 && (
+          <div className="flex flex-col items-center justify-center mx-auto flex-grow">
+            <MessageCircle size={48} className="text-dc-neutral-300" />
+            <h1 className="text-dc-neutral-300 text-xl font-medium">
+              There are no messages on this chat, yet!
+            </h1>
+            <p className="text-dc-neutral-300 pb-6">
+              You can say hi to all members of this chat
+            </p>
+            <SendHelloMessageList
+              sendMessage={(message) => sendMessageMutate({ message })}
             />
-          ))}
-        </div>
+          </div>
+        )}
+
+        {groupedMessages.length > 0 && (
+          <div className="flex flex-col-reverse flex-grow overflow-y-scroll px-4 py-6">
+            {groupedMessages.length === 0 &&
+              "There are no messages currently on this chat"}
+            {groupedMessages.map(({ date, messages }) => (
+              <OneDayChatMessageGroup
+                key={date.getTime()}
+                date={date}
+                messages={messages}
+              />
+            ))}
+          </div>
+        )}
         <form
           onSubmit={sendMessage}
           className={cn(
