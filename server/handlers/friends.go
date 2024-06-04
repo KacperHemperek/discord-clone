@@ -6,12 +6,15 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
+	"github.com/kacperhemperek/discord-go/ws"
+	"log/slog"
 	"net/http"
 	"time"
 )
 
 func HandleSendFriendRequest(
 	userService store.UserServiceInterface,
+	notificationWsService ws.NotificationServiceInterface,
 	friendshipService store.FriendshipServiceInterface,
 	validate *validator.Validate,
 ) utils.APIHandler {
@@ -83,11 +86,21 @@ func HandleSendFriendRequest(
 				return updateFriendshipError
 			}
 
+			sendNotificationError := notificationWsService.SendFriendRequestNotification(userToSendRequest.ID)
+			if sendNotificationError != nil {
+				slog.Info("could not send notification", "error", sendNotificationError)
+			}
+
 			return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request sent"})
 		}
 
 		if err := friendshipService.SendFriendRequest(c.User.ID, userToSendRequest.ID); err != nil {
 			return &utils.APIError{Code: http.StatusInternalServerError, Message: "Unknown error when sending friend request", Cause: err}
+		}
+
+		sendNotificationError := notificationWsService.SendFriendRequestNotification(userToSendRequest.ID)
+		if sendNotificationError != nil {
+			slog.Info("could not send notification", "error", sendNotificationError)
 		}
 
 		return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request sent"})
