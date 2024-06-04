@@ -1,70 +1,48 @@
 import React from "react";
-import { z } from "zod";
-
-const inviteItemSchema = z.object({
-  id: z.string(),
-  username: z.string(),
-  email: z.string(),
-  seen: z.boolean(),
-});
-
-type FriendInvite = z.infer<typeof inviteItemSchema>;
+import { useWebsocket } from "@app/api/ws.ts";
 
 function useFriendRequestsValue() {
-  const [requests, setRequests] = React.useState<FriendInvite[]>([]);
+  const [friendRequestNotifications, setFriendRequestNotifications] =
+    React.useState(0);
+  const { handleMessage, connect } = useWebsocket();
+  const wsRef = React.useRef<WebSocket | null>(null);
 
-  // useWebsocket({
-  //   path: "/friends/invites",
-  //   onMessage: (event) => {
-  //     const jsonData = JSON.parse(event.data);
-  //
-  //     if (jsonData?.type === FriendRequestType.allFriendInvites) {
-  //       const parsedData = allFriendsRequestSchema.safeParse(jsonData);
-  //
-  //       if (parsedData.success) {
-  //         setRequests(parsedData.data.payload);
-  //       }
-  //     }
-  //
-  //     if (jsonData?.type === FriendRequestType.newFriendInvite) {
-  //       const parsedData = newFriendRequestSchema.safeParse(jsonData);
-  //
-  //       if (parsedData.success) {
-  //         if (match) {
-  //           queryClient.refetchQueries({ queryKey: ["seen-all"] });
-  //         }
-  //
-  //         setRequests((notifications) => [
-  //           ...notifications,
-  //           parsedData.data.payload,
-  //         ]);
-  //       }
-  //     }
-  //   },
-  // });
+  React.useEffect(() => {
+    const onMessage = () => {
+      console.log("new request");
+      setFriendRequestNotifications((prev) => {
+        return prev + 1;
+      });
+    };
+
+    const messageHandler = handleMessage(onMessage);
+    wsRef.current = connect(
+      `/notifications`,
+      "Could not to notifications socket",
+    );
+
+    if (wsRef.current) {
+      wsRef.current.addEventListener("message", messageHandler);
+      wsRef.current.addEventListener("open", () => {
+        console.log("notifications socket opened");
+      });
+    }
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [connect, handleMessage]);
 
   function markAllAsSeen() {
-    setRequests((requests) => {
-      return requests.map((request) => ({
-        ...request,
-        seen: true,
-      }));
-    });
+    console.log("marking all as seen");
+    setFriendRequestNotifications(0);
   }
-
-  function removeRequest(id: string) {
-    setRequests((requests) => {
-      return requests.filter((request) => request.id !== id);
-    });
-  }
-
-  const hasNewRequests = requests.filter((n) => !n.seen).length > 0;
 
   return {
-    requests,
     markAllAsSeen,
-    hasNewRequests,
-    removeRequest,
+    friendRequestNotifications,
   };
 }
 

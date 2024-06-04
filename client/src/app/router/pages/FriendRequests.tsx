@@ -9,6 +9,7 @@ import Button from "@app/components/Button.tsx";
 import { Link } from "react-router-dom";
 import { ErrorPageWithRetry } from "@app/components/ErrorPageWithRetry.tsx";
 import { ClientError } from "@app/utils/clientError.ts";
+import { useFriendRequests } from "@app/context/FriendRequestsProvider.tsx";
 
 export default function FriendRequestsPage() {
   const {
@@ -18,6 +19,13 @@ export default function FriendRequestsPage() {
     showLoading,
     refetch,
   } = usePendingFriendRequests();
+
+  const { markAllAsSeen } = useFriendRequests();
+
+  React.useEffect(() => {
+    markAllAsSeen();
+  }, [requests, markAllAsSeen]);
+
   const [search, setSearch] = React.useState("");
 
   return (
