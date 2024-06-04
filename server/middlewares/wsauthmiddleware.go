@@ -34,7 +34,6 @@ func NewWsAuthMiddleware() WsAuthMiddleware {
 				newRefreshToken = refreshToken
 				accessTokenUser = refreshTokenUser
 				if err != nil {
-
 					return err
 				}
 			}

@@ -1,51 +1,25 @@
 package handlers
 
 import (
-	"fmt"
 	"github.com/go-playground/validator/v10"
-	"github.com/gorilla/websocket"
 	"github.com/kacperhemperek/discord-go/utils"
 	"github.com/kacperhemperek/discord-go/ws"
+	"log/slog"
 	"net/http"
 )
 
 func HandleSubscribeNotifications(notificationWsService ws.NotificationServiceInterface) utils.APIHandler {
 
 	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
-		notificationWsService.AddConn(c.User.ID, c.Conn)
-
+		connID := notificationWsService.AddConn(c.User.ID, c.Conn)
 		for {
-			mType, msg, err := c.Conn.ReadMessage()
-
+			_, _, err := c.Conn.ReadMessage()
 			if err != nil {
-				return err
-			}
-
-			switch mType {
-			case websocket.TextMessage:
-				fmt.Println("received message: ", string(msg))
-			case websocket.CloseMessage:
-				return nil
+				break
 			}
 		}
-
-	}
-}
-
-func HandleCreateNotification(notificationWsService *ws.NotificationService, validate *validator.Validate) utils.APIHandler {
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
-		body := &CreateNotificationBody{}
-		if err := utils.ReadBody(r, body); err != nil {
-			return err
-		}
-		if err := validate.Struct(body); err != nil {
-			return err
-		}
-
-		if err := notificationWsService.Notify(c.User.ID, body.Message); err != nil {
-			fmt.Printf("error when notifying user %d: %s", c.User.ID, err)
-		}
-		return utils.WriteJson(w, http.StatusCreated, utils.JSON{"message": "notification sent"})
+		slog.Info("closing user notification connection", "userID", c.User.ID)
+		return notificationWsService.RemoveConn(c.User.ID, connID)
 	}
 }
 

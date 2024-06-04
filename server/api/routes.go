@@ -33,7 +33,7 @@ func setupRoutes(
 	mux.HandleFunc("/auth/logout", utils.HandlerFunc(handlers.HandleLogoutUser())).Methods(http.MethodPost)
 
 	mux.HandleFunc("/friends", utils.HandlerFunc(authMiddleware(handlers.HandleGetFriends(friendshipService)))).Methods(http.MethodGet)
-	mux.HandleFunc("/friends", utils.HandlerFunc(authMiddleware(handlers.HandleSendFriendRequest(userService, friendshipService, v)))).Methods(http.MethodPost)
+	mux.HandleFunc("/friends", utils.HandlerFunc(authMiddleware(handlers.HandleSendFriendRequest(userService, notificationsWsService, friendshipService, v)))).Methods(http.MethodPost)
 	mux.HandleFunc("/friends/{friendID}", utils.HandlerFunc(authMiddleware(handlers.HandleRemoveFriend(friendshipService)))).Methods(http.MethodDelete)
 	mux.HandleFunc("/friends/requests", utils.HandlerFunc(authMiddleware(handlers.HandleGetFriendRequests(friendshipService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/friends/requests/{requestId}/accept", utils.HandlerFunc(authMiddleware(handlers.HandleAcceptFriendRequest(friendshipService)))).Methods(http.MethodPost)
@@ -49,11 +49,7 @@ func setupRoutes(
 	mux.HandleFunc("/ws/chats/{chatID}", utils.WsHandler(wsAuthMiddleware(handlers.HandleConnectToChat(chatWsService)))).Methods(http.MethodGet)
 
 	mux.HandleFunc(
-		"/notifications",
-		utils.HandlerFunc(wsAuthMiddleware(handlers.HandleSubscribeNotifications(notificationsWsService))),
+		"/ws/notifications",
+		utils.WsHandler(wsAuthMiddleware(handlers.HandleSubscribeNotifications(notificationsWsService))),
 	).Methods(http.MethodGet)
-	mux.HandleFunc(
-		"/notifications",
-		utils.HandlerFunc(authMiddleware(handlers.HandleCreateNotification(notificationsWsService, v))),
-	).Methods(http.MethodPost)
 }

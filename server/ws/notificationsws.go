@@ -1,39 +1,73 @@
 package ws
 
 import (
-	"fmt"
+	"errors"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"sync"
+)
+
+var (
+	NoUserConns = errors.New("user has no connections")
 )
 
 type NotificationService struct {
-	conns map[int]*websocket.Conn
+	conns     map[int]map[string]*websocket.Conn
+	connsLock sync.RWMutex
 }
 
 type NotificationServiceInterface interface {
-	AddConn(userId int, conn *websocket.Conn)
-	RemoveConn(userId int)
-	Notify(userId int, msg string) error
+	AddConn(userID int, conn *websocket.Conn) string
+	RemoveConn(userID int, connID string) error
+	SendFriendRequestNotification(userID int) error
 }
 
-func (s *NotificationService) AddConn(userId int, conn *websocket.Conn) {
-	s.conns[userId] = conn
-}
-
-func (s *NotificationService) RemoveConn(userId int) {
-	delete(s.conns, userId)
-}
-
-func (s *NotificationService) Notify(userId int, msg string) error {
-	conn, ok := s.conns[userId]
-	if !ok {
-		return fmt.Errorf("no connection for user %d", userId)
+func (s *NotificationService) AddConn(userID int, conn *websocket.Conn) string {
+	s.connsLock.Lock()
+	defer s.connsLock.Unlock()
+	connID := uuid.New().String()
+	if userConnectionMap, userConnectionsExist := s.conns[userID]; userConnectionsExist {
+		userConnectionMap[connID] = conn
+	} else {
+		s.conns[userID] = map[string]*websocket.Conn{
+			connID: conn,
+		}
 	}
+	return connID
+}
 
-	return conn.WriteMessage(websocket.TextMessage, []byte(msg))
+func (s *NotificationService) RemoveConn(userID int, connID string) error {
+	s.connsLock.Lock()
+	defer s.connsLock.Unlock()
+	if conn, connFound := s.conns[userID][connID]; connFound {
+		err := conn.Close()
+		delete(s.conns[userID], connID)
+		if len(s.conns[userID]) == 0 {
+			delete(s.conns, userID)
+		}
+		return err
+	}
+	return NoUserConns
+}
+
+func (s *NotificationService) SendFriendRequestNotification(userID int) error {
+	s.connsLock.Lock()
+	defer s.connsLock.Unlock()
+	if conns, userConnsFound := s.conns[userID]; userConnsFound {
+		for _, conn := range conns {
+			err := conn.WriteJSON(map[string]any{
+				"type": "friend_request",
+			})
+			return err
+		}
+		return nil
+	}
+	return NoUserConns
 }
 
 func NewNotificationService() *NotificationService {
 	return &NotificationService{
-		conns: make(map[int]*websocket.Conn),
+		conns:     make(map[int]map[string]*websocket.Conn),
+		connsLock: sync.RWMutex{},
 	}
 }
