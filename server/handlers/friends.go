@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/go-playground/validator/v10"
+	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/store"
 	"github.com/kacperhemperek/discord-go/utils"
 	"github.com/kacperhemperek/discord-go/ws"
@@ -14,6 +15,7 @@ import (
 
 func HandleSendFriendRequest(
 	userService store.UserServiceInterface,
+	notificationStore store.NotificationServiceInterface,
 	notificationWsService ws.NotificationServiceInterface,
 	friendshipService store.FriendshipServiceInterface,
 	validate *validator.Validate,
@@ -85,6 +87,13 @@ func HandleSendFriendRequest(
 			if updateFriendshipError != nil {
 				return updateFriendshipError
 			}
+			_, err = notificationStore.CreateFriendRequestNotification(userToSendRequest.ID, models.FriendRequestNotificationData{
+				TestValue: "this is a test value",
+			})
+
+			if err != nil {
+				return err
+			}
 
 			sendNotificationError := notificationWsService.SendFriendRequestNotification(userToSendRequest.ID)
 			if sendNotificationError != nil {
@@ -96,6 +105,14 @@ func HandleSendFriendRequest(
 
 		if err := friendshipService.SendFriendRequest(c.User.ID, userToSendRequest.ID); err != nil {
 			return &utils.APIError{Code: http.StatusInternalServerError, Message: "Unknown error when sending friend request", Cause: err}
+		}
+
+		_, err = notificationStore.CreateFriendRequestNotification(userToSendRequest.ID, models.FriendRequestNotificationData{
+			TestValue: "this is a test value",
+		})
+
+		if err != nil {
+			return err
 		}
 
 		sendNotificationError := notificationWsService.SendFriendRequestNotification(userToSendRequest.ID)

@@ -20,6 +20,7 @@ func setupRoutes(
 	friendshipService *store.FriendshipService,
 	chatService *store.ChatService,
 	messageService *store.MessageService,
+	notificationStore store.NotificationServiceInterface,
 	notificationsWsService *ws.NotificationService,
 	chatWsService *ws.ChatService,
 	v *validator.Validate,
@@ -33,7 +34,7 @@ func setupRoutes(
 	mux.HandleFunc("/auth/logout", utils.HandlerFunc(handlers.HandleLogoutUser())).Methods(http.MethodPost)
 
 	mux.HandleFunc("/friends", utils.HandlerFunc(authMiddleware(handlers.HandleGetFriends(friendshipService)))).Methods(http.MethodGet)
-	mux.HandleFunc("/friends", utils.HandlerFunc(authMiddleware(handlers.HandleSendFriendRequest(userService, notificationsWsService, friendshipService, v)))).Methods(http.MethodPost)
+	mux.HandleFunc("/friends", utils.HandlerFunc(authMiddleware(handlers.HandleSendFriendRequest(userService, notificationStore, notificationsWsService, friendshipService, v)))).Methods(http.MethodPost)
 	mux.HandleFunc("/friends/{friendID}", utils.HandlerFunc(authMiddleware(handlers.HandleRemoveFriend(friendshipService)))).Methods(http.MethodDelete)
 	mux.HandleFunc("/friends/requests", utils.HandlerFunc(authMiddleware(handlers.HandleGetFriendRequests(friendshipService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/friends/requests/{requestId}/accept", utils.HandlerFunc(authMiddleware(handlers.HandleAcceptFriendRequest(friendshipService)))).Methods(http.MethodPost)

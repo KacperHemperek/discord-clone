@@ -27,6 +27,7 @@ func (s *Server) Start() error {
 	v := validator.New()
 
 	// register all store services
+	notificationStore := store.NewNotificationService(db, v)
 	userService := store.NewUserService(db)
 	friendshipService := store.NewFriendshipService(db)
 	chatService := store.NewChatService(db)
@@ -50,6 +51,7 @@ func (s *Server) Start() error {
 		friendshipService,
 		chatService,
 		messageService,
+		notificationStore,
 		notificationsWsService,
 		chatWsService,
 		v,
