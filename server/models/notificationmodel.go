@@ -17,19 +17,20 @@ type NotificationDTO = struct {
 	Data []byte `json:"-"`
 }
 
-type FriendRequestNotificationData = struct {
+type FriendRequestNotificationData struct {
+	TestValue string `json:"testValue" validate:"required"`
 }
 
-type FriendRequestNotification = struct {
+type FriendRequestNotification struct {
 	BaseNotification
-	Data FriendRequestNotificationData `json:"data"`
+	Data *FriendRequestNotificationData `json:"data"`
 }
 
-type NewMessageNotificationData = struct {
+type NewMessageNotificationData struct {
 	ChatID string `json:"chatId"`
 }
 
-type NewMessageNotification = struct {
+type NewMessageNotification struct {
 	BaseNotification
 	Data NewMessageNotificationData `json:"data"`
 }
