@@ -4,26 +4,24 @@ import (
 	"github.com/kacperhemperek/discord-go/types"
 )
 
-type NotificationDTO = struct {
+type BaseNotification = struct {
 	Base
 	Type   types.NotificationType `json:"type"`
 	Seen   bool                   `json:"seen"`
 	UserID int                    `json:"userId"`
-	Data   []byte                 `json:"-"`
 }
 
-type BaseFriendRequestNotification = struct {
+type NotificationDTO = struct {
 	Base
-	Type   types.NotificationType `json:"type"`
-	Seen   bool                   `json:"seen"`
-	UserID int                    `json:"userId"`
+	BaseNotification
+	Data []byte `json:"-"`
 }
 
 type FriendRequestNotificationData = struct {
 }
 
 type FriendRequestNotification = struct {
-	BaseFriendRequestNotification
+	BaseNotification
 	Data FriendRequestNotificationData `json:"data"`
 }
 
@@ -32,6 +30,6 @@ type NewMessageNotificationData = struct {
 }
 
 type NewMessageNotification = struct {
-	BaseFriendRequestNotification
-	Data FriendRequestNotificationData `json:"data"`
+	BaseNotification
+	Data NewMessageNotificationData `json:"data"`
 }
