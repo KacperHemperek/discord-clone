@@ -87,7 +87,7 @@ func HandleSendFriendRequest(
 			if updateFriendshipError != nil {
 				return updateFriendshipError
 			}
-			_, err = notificationStore.CreateFriendRequestNotification(userToSendRequest.ID, models.FriendRequestNotificationData{
+			n, err := notificationStore.CreateFriendRequestNotification(userToSendRequest.ID, models.FriendRequestNotificationData{
 				TestValue: "this is a test value",
 			})
 
@@ -95,7 +95,7 @@ func HandleSendFriendRequest(
 				return err
 			}
 
-			sendNotificationError := notificationWsService.SendFriendRequestNotification(userToSendRequest.ID)
+			sendNotificationError := notificationWsService.SendNotification(userToSendRequest.ID, n)
 			if sendNotificationError != nil {
 				slog.Info("could not send notification", "error", sendNotificationError)
 			}
@@ -107,7 +107,7 @@ func HandleSendFriendRequest(
 			return &utils.APIError{Code: http.StatusInternalServerError, Message: "Unknown error when sending friend request", Cause: err}
 		}
 
-		_, err = notificationStore.CreateFriendRequestNotification(userToSendRequest.ID, models.FriendRequestNotificationData{
+		n, err := notificationStore.CreateFriendRequestNotification(userToSendRequest.ID, models.FriendRequestNotificationData{
 			TestValue: "this is a test value",
 		})
 
@@ -115,7 +115,7 @@ func HandleSendFriendRequest(
 			return err
 		}
 
-		sendNotificationError := notificationWsService.SendFriendRequestNotification(userToSendRequest.ID)
+		sendNotificationError := notificationWsService.SendNotification(userToSendRequest.ID, n)
 		if sendNotificationError != nil {
 			slog.Info("could not send notification", "error", sendNotificationError)
 		}
@@ -170,17 +170,29 @@ func HandleAcceptFriendRequest(friendshipService store.FriendshipServiceInterfac
 		}
 
 		if friendship.Status != "pending" {
-			return &utils.APIError{Code: http.StatusBadRequest, Message: "Friend request already accepted or rejected", Cause: nil}
+			return &utils.APIError{
+				Code:    http.StatusBadRequest,
+				Message: "Friend request already accepted or rejected",
+				Cause:   nil,
+			}
 		}
 
 		if friendship.InviterID == c.User.ID {
-			return &utils.APIError{Code: http.StatusBadRequest, Message: "You cannot accept your own friend request", Cause: nil}
+			return &utils.APIError{
+				Code:    http.StatusBadRequest,
+				Message: "You cannot accept your own friend request",
+				Cause:   nil,
+			}
 		}
 
 		err = friendshipService.AcceptFriendRequest(requestId)
 
 		if err != nil {
-			return &utils.APIError{Code: http.StatusInternalServerError, Message: "Unknown error when accepting friend request", Cause: err}
+			return &utils.APIError{
+				Code:    http.StatusInternalServerError,
+				Message: "Unknown error when accepting friend request",
+				Cause:   err,
+			}
 		}
 
 		return utils.WriteJson(w, http.StatusOK, utils.JSON{"message": "Friend request accepted"})
