@@ -18,4 +18,8 @@ export class QueryKeys {
   static getChat(chatId: number) {
     return ["chat", chatId];
   }
+
+  static getFriendRequestNotifications() {
+    return ["friend-request-notifications"];
+  }
 }

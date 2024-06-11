@@ -4,11 +4,8 @@ import { useFriendRequests } from "../../context/FriendRequestsProvider";
 import { FriendsNavLink } from "../../components/friends/FriendsNavLink";
 
 export default function FriendsLayout() {
-  const { friendRequestNotifications } = useFriendRequests();
-
-  const hasNewRequests = friendRequestNotifications > 0;
-
-  console.log(hasNewRequests, friendRequestNotifications);
+  const { hasUnseenFriendRequestNotifications: hasNewRequests } =
+    useFriendRequests();
 
   return (
     <>

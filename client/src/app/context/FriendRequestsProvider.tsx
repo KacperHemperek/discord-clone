@@ -1,18 +1,36 @@
 import React from "react";
 import { useWebsocket } from "@app/api/ws.ts";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { QueryKeys } from "@app/api";
+import {
+  FriendRequestNotification,
+  FriendRequestNotificationSchema,
+} from "@app/api/wstypes/notifications.ts";
 
 function useFriendRequestsValue() {
-  const [friendRequestNotifications, setFriendRequestNotifications] =
-    React.useState(0);
   const { handleMessage, connect } = useWebsocket();
   const wsRef = React.useRef<WebSocket | null>(null);
+  const queryClient = useQueryClient();
+
+  const { data: friendRequestNotifications } = useQuery({
+    queryKey: QueryKeys.getFriendRequestNotifications(),
+    queryFn: async (): Promise<FriendRequestNotification[]> => {
+      return [];
+    },
+  });
 
   React.useEffect(() => {
-    const onMessage = () => {
-      console.log("new request");
-      setFriendRequestNotifications((prev) => {
-        return prev + 1;
-      });
+    const onMessage = (data: unknown) => {
+      const friendRequestValidation =
+        FriendRequestNotificationSchema.safeParse(data);
+      if (friendRequestValidation.success) {
+        queryClient.setQueryData(
+          QueryKeys.getFriendRequestNotifications(),
+          (oldData: unknown[]) => {
+            return [...oldData, friendRequestValidation.data];
+          },
+        );
+      }
     };
 
     const messageHandler = handleMessage(onMessage);
@@ -23,9 +41,6 @@ function useFriendRequestsValue() {
 
     if (wsRef.current) {
       wsRef.current.addEventListener("message", messageHandler);
-      wsRef.current.addEventListener("open", () => {
-        console.log("notifications socket opened");
-      });
     }
 
     return () => {
@@ -33,16 +48,20 @@ function useFriendRequestsValue() {
         wsRef.current.close();
       }
     };
-  }, [connect, handleMessage]);
+  }, [connect, handleMessage, queryClient]);
 
-  function markAllAsSeen() {
-    console.log("marking all as seen");
-    setFriendRequestNotifications(0);
-  }
+  console.log({ friendRequestNotifications });
+
+  const hasUnseenFriendRequestNotifications =
+    friendRequestNotifications &&
+    friendRequestNotifications.some((notification) => notification.seen);
+
+  function markAllAsSeen() {}
 
   return {
     markAllAsSeen,
     friendRequestNotifications,
+    hasUnseenFriendRequestNotifications,
   };
 }
 
