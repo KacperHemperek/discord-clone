@@ -3,15 +3,17 @@ package store
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5"
 	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/types"
+	"log/slog"
 )
 
 type NotificationServiceInterface interface {
 	CreateFriendRequestNotification(userID int, data models.FriendRequestNotificationData) (*models.FriendRequestNotification, error)
-	GetUserFriendRequestNotifications(userID int, seen *string) ([]*models.FriendRequestNotification, error)
+	GetUserFriendRequestNotifications(userID int, seen *BoolFilter) ([]*models.FriendRequestNotification, error)
 }
 
 type NotificationService struct {
@@ -63,19 +65,29 @@ func (s *NotificationService) CreateFriendRequestNotification(userID int, data m
 	}, nil
 }
 
-func (s *NotificationService) GetUserFriendRequestNotifications(userID int, seen *string) ([]*models.FriendRequestNotification, error) {
-	var err error
+func (s *NotificationService) GetUserFriendRequestNotifications(userID int, seen *BoolFilter) ([]*models.FriendRequestNotification, error) {
 	tx, err := s.db.Begin()
 	defer func() {
-		if err != nil {
-			rollback(tx)
+		if err = tx.Rollback(); err != nil && errors.Is(err, sql.ErrTxDone) {
+			slog.Error("rollback tx", "error", err)
 		}
-		tx.Commit()
 	}()
-	return s.findFriendRequestNotifications(tx, &NotificationFilters{
+	if err != nil {
+		return make([]*models.FriendRequestNotification, 0), err
+	}
+
+	notifications, err := s.findFriendRequestNotifications(tx, &NotificationFilters{
 		Seen:   seen,
 		UserID: &userID,
 	})
+	if err != nil {
+		return notifications, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		slog.Error("commit tx", "error", err)
+	}
+	return notifications, nil
 }
 
 func (s *NotificationService) findFriendRequestNotifications(tx *sql.Tx, filters *NotificationFilters) ([]*models.FriendRequestNotification, error) {
@@ -97,7 +109,9 @@ func (s *NotificationService) findFriendRequestNotifications(tx *sql.Tx, filters
 	}
 
 	rows, err := tx.Query(
-		"SELECT id, type, user_id, data, seen, created_at, updated_at FROM notifications "+whereSQL(where)+" ORDER BY created_at DESC",
+		"SELECT id, type, user_id, data, seen, created_at, updated_at FROM notifications "+
+			whereSQL(where)+
+			" ORDER BY created_at DESC",
 		args,
 	)
 
@@ -119,7 +133,7 @@ func (s *NotificationService) findFriendRequestNotifications(tx *sql.Tx, filters
 }
 
 type NotificationFilters struct {
-	Seen   *string
+	Seen   *BoolFilter
 	UserID *int
 }
 

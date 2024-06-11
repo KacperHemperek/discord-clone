@@ -26,3 +26,12 @@ func whereSQL(list []string) string {
 	}
 	return result
 }
+
+type BoolFilter = string
+
+func NewBoolFilter(val string) *BoolFilter {
+	if val == "true" || val == "false" {
+		return &val
+	}
+	return nil
+}

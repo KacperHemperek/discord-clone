@@ -267,15 +267,11 @@ func HandleGetFriendRequestNotifications(notificationStore store.NotificationSer
 	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
 
 		seenFilter := r.URL.Query().Get("seen")
-		var seen *string = nil
-		if seenFilter == "" {
-			seen = nil
-		}
-		if seenFilter == "true" || seenFilter == "false" {
-			seen = &seenFilter
-		}
 
-		notifications, err := notificationStore.GetUserFriendRequestNotifications(c.User.ID, seen)
+		notifications, err := notificationStore.GetUserFriendRequestNotifications(
+			c.User.ID,
+			store.NewBoolFilter(seenFilter),
+		)
 
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return err
