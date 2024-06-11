@@ -2,14 +2,21 @@ import React from "react";
 import FriendRequestItem from "@app/components/friends/FriendRequestItem";
 import { Container } from "@app/components/friends/FriendPageContainer";
 import DCSearchBar from "@app/components/SearchBar";
-import { PendingFriendsResponse, usePendingFriendRequests } from "@app/api";
+import {
+  api,
+  PendingFriendsResponse,
+  QueryKeys,
+  usePendingFriendRequests,
+} from "@app/api";
 import { LoadingSpinner } from "@app/components/LoadingSpinner.tsx";
 import { UserPlus, UsersIcon } from "lucide-react";
 import Button from "@app/components/Button.tsx";
 import { Link } from "react-router-dom";
 import { ErrorPageWithRetry } from "@app/components/ErrorPageWithRetry.tsx";
 import { ClientError } from "@app/utils/clientError.ts";
-import { useFriendRequests } from "@app/context/FriendRequestsProvider.tsx";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { MutationKeys } from "@app/api/mutationKeys.ts";
+import { NotificationType } from "@app/api/wstypes/notifications.ts";
 
 export default function FriendRequestsPage() {
   const {
@@ -20,11 +27,24 @@ export default function FriendRequestsPage() {
     refetch,
   } = usePendingFriendRequests();
 
-  const { markAllAsSeen } = useFriendRequests();
+  const queryClient = useQueryClient();
+
+  const { mutate: markNotificationsAsSeen } = useMutation({
+    mutationKey: MutationKeys.markFriendRequestNotificationAsSeen(),
+    mutationFn: async () =>
+      await api.put(
+        `/notifications/mark-as-seen?type=${NotificationType.friendRequest}`,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: QueryKeys.getFriendRequestNotifications(),
+      });
+    },
+  });
 
   React.useEffect(() => {
-    markAllAsSeen();
-  }, [requests, markAllAsSeen]);
+    markNotificationsAsSeen();
+  }, [markNotificationsAsSeen]);
 
   const [search, setSearch] = React.useState("");
 

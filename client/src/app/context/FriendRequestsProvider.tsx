@@ -1,12 +1,11 @@
 import React from "react";
 import { useWebsocket } from "@app/api/ws.ts";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, QueryKeys } from "@app/api";
 import {
   FriendRequestNotification,
   FriendRequestNotificationSchema,
 } from "@app/api/wstypes/notifications.ts";
-import { MutationKeys } from "@app/api/mutationKeys.ts";
 
 type GetFriendRequestNotificationsResponse = {
   notifications: FriendRequestNotification[];
@@ -23,11 +22,6 @@ function useFriendRequestsValue() {
       api.get<GetFriendRequestNotificationsResponse>(
         `/friends/requests/notifications?seen=false`,
       ),
-  });
-
-  const { mutate } = useMutation({
-    mutationKey: MutationKeys.markFriendRequestNotificationAsSeen(),
-    mutationFn: async () => {},
   });
 
   React.useEffect(() => {
@@ -68,12 +62,9 @@ function useFriendRequestsValue() {
 
   const hasUnseenFriendRequestNotifications =
     notificationsData &&
-    notificationsData.notifications.some((notification) => notification.seen);
-
-  function markAllAsSeen() {}
+    notificationsData.notifications.some((notification) => !notification.seen);
 
   return {
-    markAllAsSeen,
     friendRequestNotifications: notificationsData,
     hasUnseenFriendRequestNotifications,
   };
