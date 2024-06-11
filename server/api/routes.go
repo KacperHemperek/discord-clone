@@ -54,4 +54,6 @@ func setupRoutes(
 		"/ws/notifications",
 		utils.WsHandler(wsAuthMiddleware(handlers.HandleSubscribeNotifications(notificationsWsService))),
 	).Methods(http.MethodGet)
+
+	mux.HandleFunc("/notifications/mark-as-seen", utils.HandlerFunc(authMiddleware(handlers.HandleMakeNotificationsSeen(notificationStore)))).Methods(http.MethodPut)
 }

@@ -14,6 +14,7 @@ import (
 type NotificationServiceInterface interface {
 	CreateFriendRequestNotification(userID int, data models.FriendRequestNotificationData) (*models.FriendRequestNotification, error)
 	GetUserFriendRequestNotifications(userID int, seen *BoolFilter) ([]*models.FriendRequestNotification, error)
+	MarkUsersNotificationsAsSeenByType(userID int, nType string) error
 }
 
 type NotificationService struct {
@@ -76,7 +77,7 @@ func (s *NotificationService) GetUserFriendRequestNotifications(userID int, seen
 		return make([]*models.FriendRequestNotification, 0), err
 	}
 
-	notifications, err := s.findFriendRequestNotifications(tx, &NotificationFilters{
+	notifications, err := s.findFriendRequestNotifications(tx, &FindNotificationFilters{
 		Seen:   seen,
 		UserID: &userID,
 	})
@@ -90,7 +91,67 @@ func (s *NotificationService) GetUserFriendRequestNotifications(userID int, seen
 	return notifications, nil
 }
 
-func (s *NotificationService) findFriendRequestNotifications(tx *sql.Tx, filters *NotificationFilters) ([]*models.FriendRequestNotification, error) {
+func (s *NotificationService) MarkUsersNotificationsAsSeenByType(userID int, nType string) error {
+	tx, err := s.db.Begin()
+	defer func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			slog.Error("rollback tx", "error", err)
+		}
+	}()
+	if err != nil {
+		return err
+	}
+
+	seen, err := NewBoolFilter("false")
+	if err != nil {
+		return err
+	}
+
+	err = s.markAsSeen(tx, &UpdateNotificationFilters{
+		UserID: &userID,
+		Type:   &nType,
+		Seen:   seen,
+	})
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func (s *NotificationService) markAsSeen(tx *sql.Tx, filters *UpdateNotificationFilters) error {
+
+	where := make([]string, 0)
+	args := pgx.NamedArgs{}
+
+	if v := filters.Type; v != nil && types.IsNotificationType(*v) {
+		where = append(where, "type = @type")
+		args["type"] = v
+	}
+
+	if v := filters.UserID; v != nil {
+		where = append(where, "user_id = @user_id")
+		args["user_id"] = v
+	}
+
+	if v := filters.Seen; v != nil {
+		where = append(where, "seen = @seen")
+		args["seen"] = v
+	}
+
+	_, err := tx.Exec(
+		"UPDATE notifications SET seen = true "+
+			whereSQL(where)+";",
+		args,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *NotificationService) findFriendRequestNotifications(tx *sql.Tx, filters *FindNotificationFilters) ([]*models.FriendRequestNotification, error) {
 	where := []string{
 		"type = @type",
 	}
@@ -132,9 +193,15 @@ func (s *NotificationService) findFriendRequestNotifications(tx *sql.Tx, filters
 	return notifications, nil
 }
 
-type NotificationFilters struct {
+type FindNotificationFilters struct {
 	Seen   *BoolFilter
 	UserID *int
+}
+
+type UpdateNotificationFilters struct {
+	UserID *int
+	Type   *string
+	Seen   *BoolFilter
 }
 
 func NewNotificationService(db *Database, v *validator.Validate) *NotificationService {

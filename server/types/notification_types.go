@@ -68,3 +68,7 @@ func (n NotificationType) Scan(value any) error {
 		return errors.New("invalid notification type")
 	}
 }
+
+func IsNotificationType(value string) bool {
+	return value == NewMessageNotification.String() || value == FriendRequestNotification.String()
+}
