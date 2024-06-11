@@ -20,7 +20,7 @@ function useFriendRequestsValue() {
     queryKey: QueryKeys.getFriendRequestNotifications(),
     queryFn: async () =>
       api.get<GetFriendRequestNotificationsResponse>(
-        `/friends/requests/notifications?seen=false`,
+        `/friends/requests/notifications?seen=false&limit=5`,
       ),
   });
 
