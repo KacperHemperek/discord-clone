@@ -2,7 +2,12 @@ package store
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+)
+
+var (
+	InvaliBoolFilterErr = errors.New("invalid bool filter string")
 )
 
 func rollback(tx *sql.Tx) {
@@ -29,9 +34,9 @@ func whereSQL(list []string) string {
 
 type BoolFilter = string
 
-func NewBoolFilter(val string) *BoolFilter {
+func NewBoolFilter(val string) (*BoolFilter, error) {
 	if val == "true" || val == "false" {
-		return &val
+		return &val, nil
 	}
-	return nil
+	return nil, InvaliBoolFilterErr
 }
