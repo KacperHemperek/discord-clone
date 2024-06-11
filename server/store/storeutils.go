@@ -4,10 +4,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 var (
-	InvaliBoolFilterErr = errors.New("invalid bool filter string")
+	InvalidBoolFilterErr   = errors.New("invalid bool filter string")
+	InvalidNumberFilterErr = errors.New("invalid number filter string")
+	LimitNumberTooSmallErr = errors.New("limit number must be at least 1")
 )
 
 func rollback(tx *sql.Tx) {
@@ -38,5 +41,29 @@ func NewBoolFilter(val string) (*BoolFilter, error) {
 	if val == "true" || val == "false" {
 		return &val, nil
 	}
-	return nil, InvaliBoolFilterErr
+	return nil, InvalidBoolFilterErr
+}
+
+type LimitFilter = int
+
+func NewLimitFilter(val any) (*LimitFilter, error) {
+	switch v := val.(type) {
+	case int:
+		if v < 1 {
+			return &v, LimitNumberTooSmallErr
+		}
+		return &v, nil
+	case string:
+		if v == "" {
+			return nil, nil
+		}
+		intVal, err := strconv.Atoi(v)
+		if intVal < 0 {
+			return &intVal, LimitNumberTooSmallErr
+		}
+		return &intVal, err
+	default:
+		return nil, InvalidNumberFilterErr
+	}
+
 }

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5"
 	"github.com/kacperhemperek/discord-go/models"
@@ -13,7 +14,7 @@ import (
 
 type NotificationServiceInterface interface {
 	CreateFriendRequestNotification(userID int, data models.FriendRequestNotificationData) (*models.FriendRequestNotification, error)
-	GetUserFriendRequestNotifications(userID int, seen *BoolFilter) ([]*models.FriendRequestNotification, error)
+	GetUserFriendRequestNotifications(userID int, seen *BoolFilter, limit *LimitFilter) ([]*models.FriendRequestNotification, error)
 	MarkUsersNotificationsAsSeenByType(userID int, nType string) error
 }
 
@@ -66,13 +67,20 @@ func (s *NotificationService) CreateFriendRequestNotification(userID int, data m
 	}, nil
 }
 
-func (s *NotificationService) GetUserFriendRequestNotifications(userID int, seen *BoolFilter) ([]*models.FriendRequestNotification, error) {
+func (s *NotificationService) GetUserFriendRequestNotifications(
+	userID int,
+	seen *BoolFilter,
+	limit *int,
+) ([]*models.FriendRequestNotification, error) {
+
 	tx, err := s.db.Begin()
+
 	defer func() {
 		if err = tx.Rollback(); err != nil && errors.Is(err, sql.ErrTxDone) {
 			slog.Error("rollback tx", "error", err)
 		}
 	}()
+
 	if err != nil {
 		return make([]*models.FriendRequestNotification, 0), err
 	}
@@ -80,7 +88,9 @@ func (s *NotificationService) GetUserFriendRequestNotifications(userID int, seen
 	notifications, err := s.findFriendRequestNotifications(tx, &FindNotificationFilters{
 		Seen:   seen,
 		UserID: &userID,
+		Limit:  limit,
 	})
+
 	if err != nil {
 		return notifications, err
 	}
@@ -155,6 +165,7 @@ func (s *NotificationService) findFriendRequestNotifications(tx *sql.Tx, filters
 	where := []string{
 		"type = @type",
 	}
+	limit := ""
 	args := pgx.NamedArgs{
 		"type": types.FriendRequestNotification.String(),
 	}
@@ -169,10 +180,16 @@ func (s *NotificationService) findFriendRequestNotifications(tx *sql.Tx, filters
 		args["user_id"] = v
 	}
 
+	if v := filters.Limit; v != nil {
+		limit = fmt.Sprintf(" LIMIT %d", *v)
+	}
+
 	rows, err := tx.Query(
 		"SELECT id, type, user_id, data, seen, created_at, updated_at FROM notifications "+
 			whereSQL(where)+
-			" ORDER BY created_at DESC",
+			" ORDER BY created_at DESC"+
+			limit+
+			";",
 		args,
 	)
 
@@ -196,6 +213,7 @@ func (s *NotificationService) findFriendRequestNotifications(tx *sql.Tx, filters
 type FindNotificationFilters struct {
 	Seen   *BoolFilter
 	UserID *int
+	Limit  *LimitFilter
 }
 
 type UpdateNotificationFilters struct {

@@ -269,11 +269,16 @@ func HandleGetFriendRequestNotifications(notificationStore store.NotificationSer
 		seenParam := r.URL.Query().Get("seen")
 		seen, err := store.NewBoolFilter(seenParam)
 		if err != nil {
-			return err
+			return utils.NewInvalidQueryParamErr("seen", *seen, err)
+		}
+		limit, err := store.NewLimitFilter(r.URL.Query().Get("limit"))
+		if err != nil {
+			return utils.NewInvalidQueryParamErr("limit", *limit, err)
 		}
 		notifications, err := notificationStore.GetUserFriendRequestNotifications(
 			c.User.ID,
 			seen,
+			limit,
 		)
 
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
