@@ -1,22 +1,33 @@
 import React from "react";
 import { useWebsocket } from "@app/api/ws.ts";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { QueryKeys } from "@app/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, QueryKeys } from "@app/api";
 import {
   FriendRequestNotification,
   FriendRequestNotificationSchema,
 } from "@app/api/wstypes/notifications.ts";
+import { MutationKeys } from "@app/api/mutationKeys.ts";
+
+type GetFriendRequestNotificationsResponse = {
+  notifications: FriendRequestNotification[];
+};
 
 function useFriendRequestsValue() {
   const { handleMessage, connect } = useWebsocket();
   const wsRef = React.useRef<WebSocket | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: friendRequestNotifications } = useQuery({
+  const { data: notificationsData } = useQuery({
     queryKey: QueryKeys.getFriendRequestNotifications(),
-    queryFn: async (): Promise<FriendRequestNotification[]> => {
-      return [];
-    },
+    queryFn: async () =>
+      api.get<GetFriendRequestNotificationsResponse>(
+        `/friends/requests/notifications?seen=false`,
+      ),
+  });
+
+  const { mutate } = useMutation({
+    mutationKey: MutationKeys.markFriendRequestNotificationAsSeen(),
+    mutationFn: async () => {},
   });
 
   React.useEffect(() => {
@@ -26,8 +37,13 @@ function useFriendRequestsValue() {
       if (friendRequestValidation.success) {
         queryClient.setQueryData(
           QueryKeys.getFriendRequestNotifications(),
-          (oldData: unknown[]) => {
-            return [...oldData, friendRequestValidation.data];
+          (oldData: GetFriendRequestNotificationsResponse) => {
+            return {
+              notifications: [
+                friendRequestValidation.data,
+                ...oldData.notifications,
+              ],
+            };
           },
         );
       }
@@ -50,17 +66,15 @@ function useFriendRequestsValue() {
     };
   }, [connect, handleMessage, queryClient]);
 
-  console.log({ friendRequestNotifications });
-
   const hasUnseenFriendRequestNotifications =
-    friendRequestNotifications &&
-    friendRequestNotifications.some((notification) => notification.seen);
+    notificationsData &&
+    notificationsData.notifications.some((notification) => notification.seen);
 
   function markAllAsSeen() {}
 
   return {
     markAllAsSeen,
-    friendRequestNotifications,
+    friendRequestNotifications: notificationsData,
     hasUnseenFriendRequestNotifications,
   };
 }
