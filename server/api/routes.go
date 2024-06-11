@@ -39,6 +39,7 @@ func setupRoutes(
 	mux.HandleFunc("/friends/requests", utils.HandlerFunc(authMiddleware(handlers.HandleGetFriendRequests(friendshipService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/friends/requests/{requestId}/accept", utils.HandlerFunc(authMiddleware(handlers.HandleAcceptFriendRequest(friendshipService)))).Methods(http.MethodPost)
 	mux.HandleFunc("/friends/requests/{requestId}/reject", utils.HandlerFunc(authMiddleware(handlers.HandleRejectFriendRequest(friendshipService)))).Methods(http.MethodPost)
+	mux.HandleFunc("/friends/requests/notifications", utils.HandlerFunc(authMiddleware(handlers.HandleGetFriendRequestNotifications(notificationStore)))).Methods(http.MethodGet)
 
 	mux.HandleFunc("/chats", utils.HandlerFunc(authMiddleware(handlers.HandleGetUsersChats(chatService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/chats/private", utils.HandlerFunc(authMiddleware(handlers.HandleCreatePrivateChat(chatService, friendshipService, v)))).Methods(http.MethodPost)

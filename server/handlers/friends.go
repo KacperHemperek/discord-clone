@@ -259,6 +259,36 @@ func HandleRemoveFriend(friendshipService store.FriendshipServiceInterface) util
 	}
 }
 
+func HandleGetFriendRequestNotifications(notificationStore store.NotificationServiceInterface) utils.APIHandler {
+	type response struct {
+		Notifications []*models.FriendRequestNotification `json:"notifications"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+
+		seenFilter := r.URL.Query().Get("seen")
+		var seen *string = nil
+		if seenFilter == "" {
+			seen = nil
+		}
+		if seenFilter == "true" || seenFilter == "false" {
+			seen = &seenFilter
+		}
+
+		notifications, err := notificationStore.GetUserFriendRequestNotifications(c.User.ID, seen)
+
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+
+		if err != nil && errors.Is(err, sql.ErrNoRows) {
+			notifications = []*models.FriendRequestNotification{}
+		}
+
+		return utils.WriteJson(w, http.StatusOK, &response{Notifications: notifications})
+	}
+}
+
 type SendFriendRequestBody struct {
 	Email string `json:"email" validate:"required,email"`
 }

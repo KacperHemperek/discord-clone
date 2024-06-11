@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"github.com/kacperhemperek/discord-go/models"
 )
 
@@ -155,6 +156,33 @@ func scanMessageWithUser(scanner Scanner) (*models.MessageWithUser, error) {
 		return nil, err
 	}
 	return message, nil
+}
+
+func scanFriendRequestNotification(scanner Scanner) (*models.FriendRequestNotification, error) {
+	notificationDto := &models.NotificationDTO{}
+	err := scanner.Scan(
+		&notificationDto.BaseNotification.Base.ID,
+		&notificationDto.BaseNotification.Type,
+		&notificationDto.BaseNotification.UserID,
+		&notificationDto.Data,
+		&notificationDto.BaseNotification.Seen,
+		&notificationDto.BaseNotification.Base.CreatedAt,
+		&notificationDto.BaseNotification.Base.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	notificationData := &models.FriendRequestNotificationData{}
+	err = json.Unmarshal(notificationDto.Data, notificationData)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.FriendRequestNotification{
+		BaseNotification: notificationDto.BaseNotification,
+		Data:             notificationData,
+	}, nil
 }
 
 // Scans only single entry from query that has to be an integer,
