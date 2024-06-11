@@ -1,6 +1,9 @@
 package types
 
-import "errors"
+import (
+	"encoding/json"
+	"errors"
+)
 
 type NotificationType int64
 
@@ -39,9 +42,9 @@ func (n NotificationType) UnmarshalJSON(data []byte) error {
 func (n NotificationType) MarshalJSON() ([]byte, error) {
 	switch n {
 	case FriendRequestNotification:
-		return []byte("friend_request"), nil
+		return json.Marshal("friend_request")
 	case NewMessageNotification:
-		return []byte("new_message"), nil
+		return json.Marshal("new_message")
 	default:
 		return []byte(""), errors.New("invalid notification type")
 	}

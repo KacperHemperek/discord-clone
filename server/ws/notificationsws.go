@@ -56,7 +56,7 @@ func (s *NotificationService) SendNotification(userID int, n *models.FriendReque
 	defer s.connsLock.Unlock()
 	if conns, userConnsFound := s.conns[userID]; userConnsFound {
 		for _, conn := range conns {
-			err := conn.WriteJSON(n)
+			err := conn.WriteJSON(*n)
 			return err
 		}
 		return nil
