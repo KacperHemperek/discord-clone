@@ -1,10 +1,13 @@
 package models
 
-import "time"
+import (
+	"github.com/kacperhemperek/discord-go/types"
+	"time"
+)
 
 type Chat struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
+	Name string         `json:"name"`
+	Type types.ChatType `json:"type"`
 	Base
 }
 

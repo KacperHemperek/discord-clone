@@ -9,33 +9,42 @@ import (
 )
 
 var (
-	ChatNotFound = errors.New("chat connection object not found")
+	ChatNotFoundErr = errors.New("chat connection object not found")
 )
 
 type ChatServiceInterface interface {
-	AddChatConn(chatID int, conn *websocket.Conn) string
+	AddChatConn(chatID, userID int, conn *websocket.Conn) string
 	BroadcastNewMessage(chatID int, message *models.MessageWithUser) error
 	BroadcastNewChatName(chatID int, name string) error
 	CloseConn(chatID int, connID string) error
+	GetActiveUserIDs(chatID int) ([]int, error)
+}
+
+type ChatConn struct {
+	UserID int
+	Conn   *websocket.Conn
 }
 
 type ChatService struct {
-	chats     map[int]map[string]*websocket.Conn
+	chats     map[int]map[string]*ChatConn
 	chatsLock sync.RWMutex
 }
 
-func (s *ChatService) AddChatConn(chatID int, conn *websocket.Conn) string {
+func (s *ChatService) AddChatConn(chatID, userID int, conn *websocket.Conn) string {
 	s.chatsLock.Lock()
 	_, chatFound := s.chats[chatID]
 	defer s.chatsLock.Unlock()
 	connID := uuid.New().String()
+	connObj := &ChatConn{
+		UserID: userID,
+		Conn:   conn,
+	}
 	if !chatFound {
-		newConns := map[string]*websocket.Conn{
-			connID: conn,
+		s.chats[chatID] = map[string]*ChatConn{
+			connID: connObj,
 		}
-		s.chats[chatID] = newConns
 	} else {
-		s.chats[chatID][connID] = conn
+		s.chats[chatID][connID] = connObj
 	}
 	return connID
 }
@@ -57,14 +66,14 @@ func (s *ChatService) CloseConn(chatID int, connID string) error {
 	if chatFound {
 		conn, connFound := chatConns[connID]
 		if connFound {
-			err := conn.Close()
+			err := conn.Conn.Close()
 			if err != nil {
 				return err
 			}
 			delete(chatConns, connID)
 		}
 	}
-	return ChatNotFound
+	return ChatNotFoundErr
 }
 
 func (s *ChatService) broadcastMessage(chatID int, message any) error {
@@ -72,14 +81,35 @@ func (s *ChatService) broadcastMessage(chatID int, message any) error {
 	defer s.chatsLock.Unlock()
 	chatConns, chatFound := s.chats[chatID]
 	if !chatFound {
-		return ChatNotFound
+		return ChatNotFoundErr
 	}
-	return broadcast(message, chatConns)
+	conns := make([]*websocket.Conn, 0)
+
+	for _, connObj := range chatConns {
+		conns = append(conns, connObj.Conn)
+	}
+	return broadcast(message, conns)
+}
+
+func (s *ChatService) GetActiveUserIDs(chatID int) ([]int, error) {
+	s.chatsLock.Lock()
+	defer s.chatsLock.Unlock()
+	memberIDs := make([]int, 0)
+	chatConns, chatFound := s.chats[chatID]
+	if !chatFound {
+		return memberIDs, ChatNotFoundErr
+	}
+
+	for _, connObj := range chatConns {
+		memberIDs = append(memberIDs, connObj.UserID)
+	}
+
+	return memberIDs, nil
 }
 
 func NewChatService() *ChatService {
 	return &ChatService{
-		chats:     make(map[int]map[string]*websocket.Conn),
+		chats:     make(map[int]map[string]*ChatConn),
 		chatsLock: sync.RWMutex{},
 	}
 }

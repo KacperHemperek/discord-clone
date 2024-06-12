@@ -7,6 +7,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/store"
+	"github.com/kacperhemperek/discord-go/types"
 	"github.com/kacperhemperek/discord-go/utils"
 	"github.com/kacperhemperek/discord-go/ws"
 	"net/http"
@@ -140,7 +141,7 @@ func HandleGetUsersChats(
 			return err
 		}
 		for _, chat := range chats {
-			if chat.Type == "private" {
+			if chat.Type.Is(types.PrivateChat) {
 				newChatName, err := getPrivChatName(c.User.ID, chat.Members)
 				if err != nil {
 					return err
@@ -160,6 +161,8 @@ func HandleSendMessage(
 	chatService store.ChatServiceInterface,
 	messageService store.MessageServiceInterface,
 	chatWsService ws.ChatServiceInterface,
+	notificationStore store.NotificationServiceInterface,
+	notificationService ws.NotificationServiceInterface,
 	validate *validator.Validate,
 ) utils.APIHandler {
 	type response struct {
@@ -198,6 +201,10 @@ func HandleSendMessage(
 		if err != nil {
 			return err
 		}
+		_, err = chatWsService.GetActiveUserIDs(chatID)
+		if err != nil {
+			return err
+		}
 		err = chatWsService.BroadcastNewMessage(chatID, mwu)
 		if err != nil {
 			return err
@@ -224,7 +231,7 @@ func HandleGetChatWithMessages(
 		if err != nil {
 			return err
 		}
-		if cwm.Type == "private" {
+		if cwm.Type.Is(types.PrivateChat) {
 			members, err := chatService.GetUsersFromChat(chat.ID)
 			if err != nil {
 				return err
@@ -245,7 +252,7 @@ func HandleConnectToChat(wsChatService ws.ChatServiceInterface) utils.APIHandler
 		if err != nil {
 			return err
 		}
-		connID := wsChatService.AddChatConn(chatID, c.Conn)
+		connID := wsChatService.AddChatConn(chatID, c.User.ID, c.Conn)
 		for {
 			_, _, err := c.Conn.ReadMessage()
 			if err != nil {
@@ -288,7 +295,7 @@ func HandleUpdateChatName(chatService store.ChatServiceInterface, chatWsService 
 			}
 			return err
 		}
-		if chat.Type == "private" {
+		if chat.Type.Is(types.PrivateChat) {
 			return &utils.APIError{
 				Code:    http.StatusBadRequest,
 				Message: "You cannot change name of private chat",

@@ -11,7 +11,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func broadcast[K string | int](message any, conns map[K]*websocket.Conn) error {
+func broadcast(message any, conns []*websocket.Conn) error {
 	for _, conn := range conns {
 		err := conn.WriteJSON(message)
 		if err != nil {

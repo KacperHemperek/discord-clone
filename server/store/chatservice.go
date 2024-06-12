@@ -1,9 +1,12 @@
 package store
 
 import (
+	"database/sql"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/utils"
+	"log/slog"
 	"strings"
 	"time"
 )
@@ -19,6 +22,7 @@ type ChatServiceInterface interface {
 	CreateGroupChat(chatName string, userIDs []int) (*models.Chat, error)
 	GetChatByID(chatID int) (*models.Chat, error)
 	EnrichChatWithMessages(chat *models.Chat) (*models.ChatWithMessages, error)
+	GetUsersFromChatBesides(chatID int, excludeUserIDs []int) ([]*models.User, error)
 	GetUsersFromChat(chatID int) ([]*models.User, error)
 	UpdateChatName(chatID int, newName string) error
 }
@@ -91,47 +95,51 @@ func (s *ChatService) CreatePrivateChatWithUsers(userOneID, userTwoID int) (*mod
 }
 
 func (s *ChatService) GetUsersChatsWithMembers(userID int) ([]*models.ChatWithMembers, error) {
+	tx, err := s.db.Begin()
+	defer func(now time.Time) {
+		utils.LogServiceCall("ChatService", "GetUsersChatsWithMembers", now)
+		rollback(tx)
+	}(time.Now())
+
 	rows, err := s.db.Query(
 		"SELECT chats.id, chats.name, chats.type, chats.created_at, chats.updated_at FROM chats JOIN chat_to_user member on user_id=$1 WHERE chats.id = member.chat_id;",
 		userID,
 	)
 	if err != nil {
+
 		return make([]*models.ChatWithMembers, 0), nil
 	}
-	chats := make([]*models.Chat, 0)
+
+	chats := make([]*models.ChatWithMembers, 0)
+
 	for rows.Next() {
 		chat, err := scanChat(rows)
+
+		slog.Info("getting chats from db", "type", chat.Type)
 
 		if err != nil {
 			return make([]*models.ChatWithMembers, 0), err
 		}
-		chats = append(chats, chat)
-	}
-	result := make([]*models.ChatWithMembers, 0)
-	for _, chat := range chats {
-		members := make([]*models.User, 0)
-		rows, err := s.db.Query(
-			"SELECT users.id, users.username, users.email, users.active, users.password, users.created_at, users.updated_at FROM users JOIN chat_to_user member on member.chat_id = $1 WHERE users.id = member.user_id",
-			chat.ID,
-		)
+
+		members, err := s.getChatMembers(tx, &GetMembersFilters{
+			IgnoredIDs: make([]int, 0),
+			ChatID:     chat.ID,
+		})
 		if err != nil {
 			return make([]*models.ChatWithMembers, 0), err
 		}
-		for rows.Next() {
-			member, err := scanUser(rows)
-			if err != nil {
-				return make([]*models.ChatWithMembers, 0), err
-			}
-			members = append(members, member)
-		}
+
 		chatWithMembers := &models.ChatWithMembers{
 			Members: members,
 			Chat:    *chat,
 		}
 
-		result = append(result, chatWithMembers)
+		slog.Info("getting chats from db", "chat with members type", chatWithMembers.Type)
+
+		chats = append(chats, chatWithMembers)
+
 	}
-	return result, nil
+	return chats, nil
 }
 
 func (s *ChatService) CreateGroupChat(chatName string, userIDs []int) (*models.Chat, error) {
@@ -215,23 +223,36 @@ func (s *ChatService) EnrichChatWithMessages(chat *models.Chat) (*models.ChatWit
 }
 
 func (s *ChatService) GetUsersFromChat(chatID int) ([]*models.User, error) {
-	rows, err := s.db.Query(`
-		SELECT u.id, u.username, u.email, u.active, u.password, u.created_at, u.updated_at FROM chats c 
-		    JOIN chat_to_user cu on c.id = cu.chat_id JOIN users u on u.id = cu.user_id WHERE c.id = $1`,
-		chatID,
-	)
+	tx, err := s.db.Begin()
+
+	defer func(now time.Time) {
+		utils.LogServiceCall("ChatService", "GetUsersFromChat", now)
+		rollback(tx)
+	}(time.Now())
+
 	if err != nil {
-		return nil, err
+		return make([]*models.User, 0), err
 	}
-	users := make([]*models.User, 0)
-	for rows.Next() {
-		user, err := scanUser(rows)
-		if err != nil {
-			return nil, err
-		}
-		users = append(users, user)
+	return s.getChatMembers(tx, &GetMembersFilters{
+		IgnoredIDs: make([]int, 0),
+		ChatID:     chatID,
+	})
+}
+
+func (s *ChatService) GetUsersFromChatBesides(chatID int, excludeUserIDs []int) ([]*models.User, error) {
+	tx, err := s.db.Begin()
+
+	defer func(now time.Time) {
+		utils.LogServiceCall("ChatService", "GetUsersFromChatBesides", now)
+		rollback(tx)
+	}(time.Now())
+	if err != nil {
+		return make([]*models.User, 0), err
 	}
-	return users, nil
+	return s.getChatMembers(tx, &GetMembersFilters{
+		IgnoredIDs: excludeUserIDs,
+		ChatID:     chatID,
+	})
 }
 
 func (s *ChatService) UpdateChatName(chatID int, newName string) error {
@@ -241,6 +262,67 @@ func (s *ChatService) UpdateChatName(chatID int, newName string) error {
 		chatID,
 	)
 	return err
+}
+
+func (s *ChatService) getChats(tx *sql.Tx, filter *GetChatsFilters) ([]*models.Chat, error) {
+	return nil, nil
+}
+
+func (s *ChatService) getChatMembers(tx *sql.Tx, filter *GetMembersFilters) ([]*models.User, error) {
+	where := []string{
+		"c.id = @chat_id",
+	}
+	args := pgx.NamedArgs{
+		"chat_id": filter.ChatID,
+	}
+
+	if v := filter.IgnoredIDs; len(v) != 0 {
+		argList := make([]string, 0)
+		for i, ID := range v {
+			argID := fmt.Sprintf("@user_id_%d", i)
+			args[argID] = ID
+			argList = append(argList, argID)
+		}
+		idList := "(" + strings.Join(argList, ",") + ")"
+
+		where = append(where, "u.id NOT IN "+idList)
+	}
+
+	rows, err := tx.Query(`
+		SELECT 
+			u.id, u.username, u.email, u.active, u.password, u.created_at, u.updated_at 
+		FROM 
+			chats c
+		JOIN chat_to_user cu on c.id = cu.chat_id 
+		JOIN users u on u.id = cu.user_id `+
+		whereSQL(where),
+		args,
+	)
+
+	members := make([]*models.User, 0)
+
+	if err != nil {
+		return members, nil
+	}
+
+	for rows.Next() {
+		member, err := scanUser(rows)
+		if err != nil {
+			return make([]*models.User, 0), err
+		}
+		members = append(members, member)
+	}
+
+	return members, nil
+}
+
+type GetMembersFilters struct {
+	IgnoredIDs []int
+	ChatID     int
+}
+
+type GetChatsFilters struct {
+	ChatID *int
 }
 
 func NewChatService(db *Database) *ChatService {

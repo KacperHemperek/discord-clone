@@ -10,12 +10,24 @@ import (
 	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/types"
 	"log/slog"
+	"strings"
 )
 
 type NotificationServiceInterface interface {
-	CreateFriendRequestNotification(userID int, data models.FriendRequestNotificationData) (*models.FriendRequestNotification, error)
-	GetUserFriendRequestNotifications(userID int, seen *BoolFilter, limit *LimitFilter) ([]*models.FriendRequestNotification, error)
+	CreateFriendRequestNotification(
+		userID int,
+		data models.FriendRequestNotificationData,
+	) (*models.FriendRequestNotification, error)
+	GetUserFriendRequestNotifications(
+		userID int,
+		seen *BoolFilter,
+		limit *LimitFilter,
+	) ([]*models.FriendRequestNotification, error)
 	MarkUsersNotificationsAsSeenByType(userID int, nType string) error
+	CreateNewMessageNotificationsForUsers(
+		userIDs []int,
+		data *models.NewMessageNotificationData,
+	) ([]*models.NewMessageNotification, error)
 }
 
 type NotificationService struct {
@@ -31,10 +43,11 @@ func (s *NotificationService) CreateFriendRequestNotification(userID int, data m
 		return nil, jsonMarshalError
 	}
 
+	frn := types.FriendRequestNotification
 	row := s.db.QueryRow(
 		"INSERT INTO notifications (user_id, type, data) VALUES ($1, $2, $3) RETURNING id, type, user_id, data, seen, created_at, updated_at;",
 		userID,
-		types.FriendRequestNotification.String(),
+		frn.String(),
 		jsonData,
 	)
 	notificationDto := &models.NotificationDTO{}
@@ -128,6 +141,36 @@ func (s *NotificationService) MarkUsersNotificationsAsSeenByType(userID int, nTy
 	return tx.Commit()
 }
 
+func (s *NotificationService) CreateNewMessageNotificationsForUsers(
+	userIDs []int,
+	data *models.NewMessageNotificationData,
+) ([]*models.NewMessageNotification, error) {
+
+	jsonData, jsonMarshalError := json.Marshal(data)
+
+	if jsonMarshalError != nil {
+		return nil, jsonMarshalError
+	}
+
+	values := make([]string, 0)
+	nmn := types.NewMessageNotification
+
+	for _, userID := range userIDs {
+		values = append(
+			values,
+			fmt.Sprintf("(%d, false, %s, %s)", userID, jsonData, nmn.String()),
+		)
+	}
+
+	slog.Info("batch create notifications", "values", strings.Join(values, ", "))
+
+	//rows, err := s.db.Query(
+	//	"INSERT INTO notifications (user_id, seen, data, type) VALUES ",
+	//)
+
+	return make([]*models.NewMessageNotification, 0), nil
+}
+
 func (s *NotificationService) markAsSeen(tx *sql.Tx, filters *UpdateNotificationFilters) error {
 
 	where := make([]string, 0)
@@ -162,12 +205,13 @@ func (s *NotificationService) markAsSeen(tx *sql.Tx, filters *UpdateNotification
 }
 
 func (s *NotificationService) findFriendRequestNotifications(tx *sql.Tx, filters *FindNotificationFilters) ([]*models.FriendRequestNotification, error) {
+	frn := types.FriendRequestNotification
 	where := []string{
 		"type = @type",
 	}
 	limit := ""
 	args := pgx.NamedArgs{
-		"type": types.FriendRequestNotification.String(),
+		"type": frn.String(),
 	}
 
 	if v := filters.Seen; v != nil {

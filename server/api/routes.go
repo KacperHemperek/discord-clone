@@ -22,7 +22,7 @@ func setupRoutes(
 	messageService *store.MessageService,
 	notificationStore store.NotificationServiceInterface,
 	notificationsWsService *ws.NotificationService,
-	chatWsService *ws.ChatService,
+	chatWsService ws.ChatServiceInterface,
 	v *validator.Validate,
 ) {
 
@@ -44,7 +44,7 @@ func setupRoutes(
 	mux.HandleFunc("/chats", utils.HandlerFunc(authMiddleware(handlers.HandleGetUsersChats(chatService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/chats/private", utils.HandlerFunc(authMiddleware(handlers.HandleCreatePrivateChat(chatService, friendshipService, v)))).Methods(http.MethodPost)
 	mux.HandleFunc("/chats/group", utils.HandlerFunc(authMiddleware(handlers.HandleCreateGroupChat(chatService, userService, v)))).Methods(http.MethodPost)
-	mux.HandleFunc("/chats/{chatID}/messages", utils.HandlerFunc(authMiddleware(handlers.HandleSendMessage(chatService, messageService, chatWsService, v)))).Methods(http.MethodPost)
+	mux.HandleFunc("/chats/{chatID}/messages", utils.HandlerFunc(authMiddleware(handlers.HandleSendMessage(chatService, messageService, chatWsService, notificationStore, notificationsWsService, v)))).Methods(http.MethodPost)
 	mux.HandleFunc("/chats/{chatID}", utils.HandlerFunc(authMiddleware(handlers.HandleGetChatWithMessages(chatService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/chats/{chatID}/update-name", utils.HandlerFunc(authMiddleware(handlers.HandleUpdateChatName(chatService, chatWsService, v)))).Methods(http.MethodPut)
 

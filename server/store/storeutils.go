@@ -3,7 +3,7 @@ package store
 import (
 	"database/sql"
 	"errors"
-	"fmt"
+	"log/slog"
 	"strconv"
 )
 
@@ -14,9 +14,8 @@ var (
 )
 
 func rollback(tx *sql.Tx) {
-	err := tx.Rollback()
-	if err != nil {
-		fmt.Println("Error occurred when rolling back: ", err)
+	if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+		slog.Error("rollback tx", "error", err)
 	}
 }
 
