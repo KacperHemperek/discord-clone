@@ -1,6 +1,11 @@
 package store
 
-import "github.com/kacperhemperek/discord-go/models"
+import (
+	"github.com/jackc/pgx/v5"
+	"github.com/kacperhemperek/discord-go/models"
+	"github.com/kacperhemperek/discord-go/utils"
+	"time"
+)
 
 type MessageServiceInterface interface {
 	CreateMessageInChat(chatID, userID int, text string) (*models.Message, error)
@@ -12,7 +17,17 @@ type MessageService struct {
 }
 
 func (s *MessageService) CreateMessageInChat(chatID, userID int, text string) (*models.Message, error) {
-	row := s.db.QueryRow(`
+	tx, err := s.db.Begin()
+	defer func(now time.Time) {
+		utils.LogServiceCall("MessageService", "CreateMessageInChat", now)
+		rollback(tx)
+	}(time.Now())
+
+	if err != nil {
+		return nil, err
+	}
+
+	row := tx.QueryRow(`
 		INSERT INTO messages (text, sender_id, chat_id) 
 			VALUES ($1, $2, $3) RETURNING id, text, created_at, updated_at;`,
 		text,
@@ -20,7 +35,24 @@ func (s *MessageService) CreateMessageInChat(chatID, userID int, text string) (*
 		chatID,
 	)
 
-	return scanMessage(row)
+	m, err := scanMessage(row)
+
+	_, err = tx.Exec(
+		"UPDATE chats SET updated_at = now() "+whereSQL([]string{"id = @chat_id"}), pgx.NamedArgs{
+			"chat_id": chatID,
+		})
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
 func (s *MessageService) EnrichMessageWithUser(message *models.Message) (*models.MessageWithUser, error) {

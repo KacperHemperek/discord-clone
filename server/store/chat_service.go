@@ -102,7 +102,7 @@ func (s *ChatService) GetUsersChatsWithMembers(userID int) ([]*models.ChatWithMe
 	}(time.Now())
 
 	rows, err := s.db.Query(
-		"SELECT chats.id, chats.name, chats.type, chats.created_at, chats.updated_at FROM chats JOIN chat_to_user member on user_id=$1 WHERE chats.id = member.chat_id;",
+		"SELECT chats.id, chats.name, chats.type, chats.created_at, chats.updated_at FROM chats JOIN chat_to_user member on user_id=$1 WHERE chats.id = member.chat_id ORDER BY chats.updated_at DESC;",
 		userID,
 	)
 	if err != nil {
@@ -114,8 +114,6 @@ func (s *ChatService) GetUsersChatsWithMembers(userID int) ([]*models.ChatWithMe
 
 	for rows.Next() {
 		chat, err := scanChat(rows)
-
-		slog.Info("getting chats from db", "type", chat.Type)
 
 		if err != nil {
 			return make([]*models.ChatWithMembers, 0), err
