@@ -10,6 +10,7 @@ import (
 	"github.com/kacperhemperek/discord-go/types"
 	"github.com/kacperhemperek/discord-go/utils"
 	"github.com/kacperhemperek/discord-go/ws"
+	"log/slog"
 	"net/http"
 	"slices"
 	"strings"
@@ -209,6 +210,37 @@ func HandleSendMessage(
 		if err != nil {
 			return err
 		}
+
+		activeMemberIDs, err := chatWsService.GetActiveUserIDs(chatID)
+
+		if err != nil {
+			return err
+		}
+
+		members, err := chatService.GetUsersFromChatBesides(chatID, activeMemberIDs)
+
+		if err != nil {
+			return err
+		}
+		memberIDs := make([]int, 0)
+		for _, m := range members {
+			memberIDs = append(memberIDs, m.ID)
+		}
+
+		notifications, err := notificationStore.CreateNewMessageNotificationsForUsers(
+			memberIDs,
+			&models.NewMessageNotificationData{
+				ChatID: chatID,
+			},
+		)
+
+		for _, n := range notifications {
+			err := notificationService.SendNotification(n.UserID, *n)
+			if err != nil {
+				slog.Error("could not send new message notification", "userID", n.UserID)
+			}
+		}
+
 		return utils.WriteJson(w, http.StatusCreated, &response{
 			Message: "Message created successfully",
 		})

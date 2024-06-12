@@ -9,8 +9,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/types"
+	"github.com/kacperhemperek/discord-go/utils"
 	"log/slog"
 	"strings"
+	"time"
 )
 
 type NotificationServiceInterface interface {
@@ -145,6 +147,9 @@ func (s *NotificationService) CreateNewMessageNotificationsForUsers(
 	userIDs []int,
 	data *models.NewMessageNotificationData,
 ) ([]*models.NewMessageNotification, error) {
+	defer func(now time.Time) {
+		utils.LogServiceCall("NotificationService", "CreateNewMessageNotificationsForUsers", now)
+	}(time.Now())
 
 	jsonData, jsonMarshalError := json.Marshal(data)
 
@@ -162,13 +167,34 @@ func (s *NotificationService) CreateNewMessageNotificationsForUsers(
 		)
 	}
 
-	slog.Info("batch create notifications", "values", strings.Join(values, ", "))
+	rows, err := s.db.Query(
+		"INSERT INTO notifications (user_id, seen, data, type) VALUES " + strings.Join(values, ",") + "RETURNING id, type, seen, data, user_id created_at, updated_at;",
+	)
 
-	//rows, err := s.db.Query(
-	//	"INSERT INTO notifications (user_id, seen, data, type) VALUES ",
-	//)
+	ns := make([]*models.NewMessageNotification, 0)
 
-	return make([]*models.NewMessageNotification, 0), nil
+	if err != nil {
+		return ns, err
+	}
+
+	for rows.Next() {
+		n := &models.NewMessageNotification{}
+		err := rows.Scan(
+			&n.ID,
+			&n.Type,
+			&n.Seen,
+			&n.Data,
+			&n.UserID,
+			&n.CreatedAt,
+			&n.UpdatedAt,
+		)
+		if err != nil {
+			return make([]*models.NewMessageNotification, 0), err
+		}
+		ns = append(ns, n)
+	}
+
+	return ns, nil
 }
 
 func (s *NotificationService) markAsSeen(tx *sql.Tx, filters *UpdateNotificationFilters) error {

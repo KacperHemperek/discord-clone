@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/kacperhemperek/discord-go/models"
 	"sync"
 )
 
@@ -20,7 +19,7 @@ type NotificationService struct {
 type NotificationServiceInterface interface {
 	AddConn(userID int, conn *websocket.Conn) string
 	RemoveConn(userID int, connID string) error
-	SendNotification(userID int, n *models.FriendRequestNotification) error
+	SendNotification(userID int, n any) error
 }
 
 func (s *NotificationService) AddConn(userID int, conn *websocket.Conn) string {
@@ -51,12 +50,12 @@ func (s *NotificationService) RemoveConn(userID int, connID string) error {
 	return NoUserConns
 }
 
-func (s *NotificationService) SendNotification(userID int, n *models.FriendRequestNotification) error {
+func (s *NotificationService) SendNotification(userID int, n any) error {
 	s.connsLock.Lock()
 	defer s.connsLock.Unlock()
 	if conns, userConnsFound := s.conns[userID]; userConnsFound {
 		for _, conn := range conns {
-			err := conn.WriteJSON(*n)
+			err := conn.WriteJSON(n)
 			return err
 		}
 		return nil

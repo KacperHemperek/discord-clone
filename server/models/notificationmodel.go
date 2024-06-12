@@ -1,6 +1,8 @@
 package models
 
 import (
+	"encoding/json"
+	"errors"
 	"github.com/kacperhemperek/discord-go/types"
 )
 
@@ -27,7 +29,18 @@ type FriendRequestNotification struct {
 }
 
 type NewMessageNotificationData struct {
-	ChatID string `json:"chatId"`
+	ChatID int `json:"chatId"`
+}
+
+func (n *NewMessageNotificationData) Scan(value any) error {
+	switch val := value.(type) {
+	case []byte:
+		return json.Unmarshal(val, n)
+	case string:
+		return json.Unmarshal([]byte(val), n)
+	default:
+		return errors.New("invalid new messsage notification data")
+	}
 }
 
 type NewMessageNotification struct {
