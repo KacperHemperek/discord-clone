@@ -16,20 +16,11 @@ import (
 )
 
 type NotificationServiceInterface interface {
-	CreateFriendRequestNotification(
-		userID int,
-		data models.FriendRequestNotificationData,
-	) (*models.FriendRequestNotification, error)
-	GetUserFriendRequestNotifications(
-		userID int,
-		seen *BoolFilter,
-		limit *LimitFilter,
-	) ([]*models.FriendRequestNotification, error)
+	CreateFriendRequestNotification(userID int, data models.FriendRequestNotificationData) (*models.FriendRequestNotification, error)
+	GetUserFriendRequestNotifications(userID int, seen *BoolFilter, limit *LimitFilter) ([]*models.FriendRequestNotification, error)
 	MarkUsersNotificationsAsSeenByType(userID int, nType string) error
-	CreateNewMessageNotificationsForUsers(
-		userIDs []int,
-		data *models.NewMessageNotificationData,
-	) ([]*models.NewMessageNotification, error)
+	CreateNewMessageNotificationsForUsers(userIDs []int, data *models.NewMessageNotificationData) ([]*models.NewMessageNotification, error)
+	GetUserNewMessageNotifications(userID int, seen *BoolFilter, limit *LimitFilter) ([]*models.NewMessageNotification, error)
 }
 
 type NotificationService struct {
@@ -90,11 +81,10 @@ func (s *NotificationService) GetUserFriendRequestNotifications(
 
 	tx, err := s.db.Begin()
 
-	defer func() {
-		if err = tx.Rollback(); err != nil && errors.Is(err, sql.ErrTxDone) {
-			slog.Error("rollback tx", "error", err)
-		}
-	}()
+	defer func(now time.Time) {
+		utils.LogServiceCall("NotificationsService", "GetUserFriendRequestNotifications", now)
+		rollback(tx)
+	}(time.Now())
 
 	if err != nil {
 		return make([]*models.FriendRequestNotification, 0), err
@@ -111,7 +101,7 @@ func (s *NotificationService) GetUserFriendRequestNotifications(
 	}
 	err = tx.Commit()
 	if err != nil {
-		slog.Error("commit tx", "error", err)
+		return make([]*models.FriendRequestNotification, 0), err
 	}
 	return notifications, nil
 }
@@ -206,6 +196,35 @@ func (s *NotificationService) CreateNewMessageNotificationsForUsers(
 	return ns, nil
 }
 
+func (s *NotificationService) GetUserNewMessageNotifications(userID int, seen *BoolFilter, limit *LimitFilter) ([]*models.NewMessageNotification, error) {
+	tx, err := s.db.Begin()
+
+	defer func(now time.Time) {
+		utils.LogServiceCall("NotificationsService", "GetUserNewMessageNotifications", now)
+		rollback(tx)
+	}(time.Now())
+
+	if err != nil {
+		return make([]*models.NewMessageNotification, 0), err
+	}
+
+	ns, err := s.findNewMessageNotifications(tx, &FindNotificationFilters{
+		Seen:   seen,
+		UserID: &userID,
+		Limit:  limit,
+	})
+
+	if err != nil {
+		return make([]*models.NewMessageNotification, 0), err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return make([]*models.NewMessageNotification, 0), err
+	}
+
+	return ns, nil
+}
+
 func (s *NotificationService) markAsSeen(tx *sql.Tx, filters *UpdateNotificationFilters) error {
 
 	where := make([]string, 0)
@@ -280,6 +299,62 @@ func (s *NotificationService) findFriendRequestNotifications(tx *sql.Tx, filters
 
 	for rows.Next() {
 		n, err := scanFriendRequestNotification(rows)
+		if err != nil {
+			return nil, err
+		}
+		notifications = append(notifications, n)
+	}
+
+	return notifications, nil
+}
+
+func (s *NotificationService) findNewMessageNotifications(tx *sql.Tx, filters *FindNotificationFilters) ([]*models.NewMessageNotification, error) {
+	nmn := types.NewMessageNotification
+	where := []string{
+		"type = @type",
+	}
+	limit := ""
+	args := pgx.NamedArgs{
+		"type": nmn.String(),
+	}
+
+	if v := filters.Seen; v != nil {
+		where = append(where, "seen = @seen")
+		args["seen"] = v
+	}
+
+	if v := filters.UserID; v != nil {
+		where = append(where, "user_id = @user_id")
+		args["user_id"] = v
+	}
+
+	if v := filters.Limit; v != nil {
+		limit = fmt.Sprintf(" LIMIT %d", *v)
+	}
+
+	rows, err := tx.Query(
+		"SELECT id, type, user_id, data, seen, created_at, updated_at FROM notifications "+
+			whereSQL(where)+
+			" ORDER BY created_at DESC"+
+			limit+
+			";",
+		args,
+	)
+
+	notifications := make([]*models.NewMessageNotification, 0)
+	if err != nil {
+		return notifications, err
+	}
+	for rows.Next() {
+		n := &models.NewMessageNotification{}
+		err := rows.Scan(
+			&n.ID,
+			&n.Type,
+			&n.UserID,
+			&n.Data,
+			&n.CreatedAt,
+			&n.UpdatedAt,
+		)
 		if err != nil {
 			return nil, err
 		}

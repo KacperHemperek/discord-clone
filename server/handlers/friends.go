@@ -21,7 +21,7 @@ func HandleSendFriendRequest(
 	validate *validator.Validate,
 ) utils.APIHandler {
 
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 		body := &SendFriendRequestBody{}
 
 		if err := utils.ReadAndValidateBody(r, body, validate); err != nil {
@@ -125,7 +125,7 @@ func HandleSendFriendRequest(
 }
 
 func HandleGetFriendRequests(friendshipService store.FriendshipServiceInterface) utils.APIHandler {
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 		friendRequests, err := friendshipService.GetUsersFriendRequests(c.User.ID)
 
 		if err != nil {
@@ -137,7 +137,7 @@ func HandleGetFriendRequests(friendshipService store.FriendshipServiceInterface)
 }
 
 func HandleGetFriends(friendshipService store.FriendshipServiceInterface) utils.APIHandler {
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 		users, err := friendshipService.GetFriendsByUserID(c.User.ID)
 
 		if err != nil {
@@ -149,7 +149,7 @@ func HandleGetFriends(friendshipService store.FriendshipServiceInterface) utils.
 }
 
 func HandleAcceptFriendRequest(friendshipService store.FriendshipServiceInterface) utils.APIHandler {
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 		requestId, err := utils.GetIntParam(r, "requestId")
 		if err != nil {
 			return &utils.APIError{Code: http.StatusBadRequest, Message: "Invalid request", Cause: err}
@@ -200,7 +200,7 @@ func HandleAcceptFriendRequest(friendshipService store.FriendshipServiceInterfac
 }
 
 func HandleRejectFriendRequest(friendshipService store.FriendshipServiceInterface) utils.APIHandler {
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 		requestId, err := utils.GetIntParam(r, "requestId")
 		if err != nil {
 			return &utils.APIError{Code: http.StatusBadRequest, Message: "Invalid request", Cause: err}
@@ -233,7 +233,7 @@ func HandleRemoveFriend(friendshipService store.FriendshipServiceInterface) util
 		Message string `json:"message"`
 	}
 
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 		friendID, err := utils.GetIntParam(r, "friendID")
 		if err != nil {
 			return &utils.APIError{
@@ -264,7 +264,7 @@ func HandleGetFriendRequestNotifications(notificationStore store.NotificationSer
 		Notifications []*models.FriendRequestNotification `json:"notifications"`
 	}
 
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 
 		seenParam := r.URL.Query().Get("seen")
 		seen, err := store.NewBoolFilter(seenParam)

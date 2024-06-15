@@ -17,7 +17,7 @@ type AuthMiddleware = func(h utils.APIHandler) utils.APIHandler
 
 func NewAuthMiddleware() AuthMiddleware {
 	return func(h utils.APIHandler) utils.APIHandler {
-		return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+		return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 			accessToken, err := utils.GetAccessToken(r)
 			if err != nil {
 				if !errors.Is(err, http.ErrNoCookie) {

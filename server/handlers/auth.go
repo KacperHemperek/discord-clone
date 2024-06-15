@@ -22,7 +22,7 @@ type LoginUserRequest struct {
 
 func HandleRegisterUser(userService *store.UserService, validate *validator.Validate) utils.APIHandler {
 
-	return func(w http.ResponseWriter, r *http.Request, _ *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, _ *utils.APIContext) error {
 		body := &RegisterUserRequest{}
 
 		if err := utils.ReadBody(r, body); err != nil {
@@ -95,7 +95,7 @@ func HandleRegisterUser(userService *store.UserService, validate *validator.Vali
 
 func HandleLogin(userService *store.UserService, validate *validator.Validate) utils.APIHandler {
 
-	return func(w http.ResponseWriter, r *http.Request, _ *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, _ *utils.APIContext) error {
 		InvalidRequestApiError := &utils.APIError{
 			Code:    http.StatusBadRequest,
 			Message: "Invalid request body",
@@ -175,7 +175,7 @@ func HandleGetLoggedInUser() utils.APIHandler {
 		RefreshToken string         `json:"refreshToken"`
 	}
 
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 		accessToken, err := utils.GetAccessToken(r)
 		if err != nil {
 			return err
@@ -195,7 +195,7 @@ func HandleGetLoggedInUser() utils.APIHandler {
 
 func HandleLogoutUser() utils.APIHandler {
 
-	return func(w http.ResponseWriter, _ *http.Request, _ *utils.Context) error {
+	return func(w http.ResponseWriter, _ *http.Request, _ *utils.APIContext) error {
 		utils.RemoveAuthTokensCookies(w)
 
 		return utils.WriteJson(w, http.StatusOK, &utils.JSON{"message": "user successfully logged out"})

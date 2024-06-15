@@ -14,7 +14,7 @@ type WsAuthMiddleware = func(h utils.APIHandler) utils.APIHandler
 
 func NewWsAuthMiddleware() WsAuthMiddleware {
 	return func(h utils.APIHandler) utils.APIHandler {
-		return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+		return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 			accessToken, err := getAccessTokenFromQueryParams(r)
 			if err != nil {
 				return unauthorizedApiError

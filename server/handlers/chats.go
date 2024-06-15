@@ -28,7 +28,7 @@ func HandleCreatePrivateChat(
 		Message string `json:"message"`
 		ChatID  int    `json:"chatId"`
 	}
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 		body := &CreateChatRequestBody{}
 		if err := utils.ReadAndValidateBody(r, body, validate); err != nil {
 			return &utils.APIError{
@@ -88,7 +88,7 @@ func HandleCreateGroupChat(
 		ChatID  int    `json:"chatId"`
 		Message string `json:"message"`
 	}
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 		body := &CreateGroupChatRequestBody{}
 		if err := utils.ReadAndValidateBody(r, body, validate); err != nil {
 			return &utils.APIError{
@@ -135,7 +135,7 @@ func HandleGetUsersChats(
 		Chats []*models.ChatWithMembers `json:"chats"`
 	}
 
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 		chats, err := chatService.GetUsersChatsWithMembers(c.User.ID)
 		if err != nil {
 			return err
@@ -169,7 +169,7 @@ func HandleSendMessage(
 		Message string `json:"message"`
 	}
 
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 		chatID, err := utils.GetIntParam(r, "chatID")
 		if err != nil {
 			return err
@@ -253,7 +253,7 @@ func HandleSendMessage(
 func HandleGetChatWithMessages(
 	chatService store.ChatServiceInterface,
 ) utils.APIHandler {
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 		chatID, err := utils.GetIntParam(r, "chatID")
 		if err != nil {
 			return err
@@ -282,7 +282,7 @@ func HandleGetChatWithMessages(
 }
 
 func HandleConnectToChat(wsChatService ws.ChatServiceInterface) utils.APIHandler {
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 		chatID, err := utils.GetIntParam(r, "chatID")
 		if err != nil {
 			return err
@@ -307,7 +307,7 @@ func HandleUpdateChatName(chatService store.ChatServiceInterface, chatWsService 
 		Message string `json:"message"`
 	}
 
-	return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 		chatID, err := utils.GetIntParam(r, "chatID")
 		if err != nil {
 			return err

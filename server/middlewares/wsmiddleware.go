@@ -10,7 +10,7 @@ type ConnectWsMiddleware = func(h utils.APIHandler) utils.APIHandler
 
 func NewConnectWsMiddleware() ConnectWsMiddleware {
 	return func(h utils.APIHandler) utils.APIHandler {
-		return func(w http.ResponseWriter, r *http.Request, c *utils.Context) error {
+		return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
 			upgrader := websocket.Upgrader{
 				ReadBufferSize:  1024,
 				WriteBufferSize: 1024,

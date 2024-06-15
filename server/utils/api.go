@@ -29,7 +29,7 @@ func WsHandler(handler APIHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer logRequest(r, time.Now())
 
-		handlerErr := handler(w, r, &Context{})
+		handlerErr := handler(w, r, &APIContext{})
 		if handlerErr != nil {
 			var err *APIError
 			if errors.As(handlerErr, &err) {
@@ -45,7 +45,7 @@ func HandlerFunc(handler APIHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer logRequest(r, time.Now())
 
-		handlerErr := handler(w, r, &Context{})
+		handlerErr := handler(w, r, &APIContext{})
 		if handlerErr != nil {
 			var err *APIError
 			if errors.As(handlerErr, &err) {
@@ -109,9 +109,9 @@ func GetIntParam(r *http.Request, param string) (int, error) {
 	return number, nil
 }
 
-type APIHandler func(w http.ResponseWriter, r *http.Request, c *Context) error
+type APIHandler func(w http.ResponseWriter, r *http.Request, c *APIContext) error
 
-type Context struct {
+type APIContext struct {
 	User *JWTUser
 	Conn *websocket.Conn
 }
