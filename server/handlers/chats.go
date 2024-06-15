@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/store"
@@ -217,7 +216,7 @@ func HandleSendMessage(
 			return err
 		}
 
-		members, err := chatService.GetUsersFromChatBesides(chatID, activeMemberIDs)
+		members, err := chatService.GetChatMembersExcluding(chatID, activeMemberIDs)
 
 		if err != nil {
 			return err
@@ -233,6 +232,10 @@ func HandleSendMessage(
 				ChatID: chatID,
 			},
 		)
+
+		if err != nil {
+			return err
+		}
 
 		for _, n := range notifications {
 			err := notificationService.SendNotification(n.UserID, *n)
@@ -264,7 +267,7 @@ func HandleGetChatWithMessages(
 			return err
 		}
 		if cwm.Type.Is(types.PrivateChat) {
-			members, err := chatService.GetUsersFromChat(chat.ID)
+			members, err := chatService.GetChatMembers(chat.ID)
 			if err != nil {
 				return err
 			}
@@ -291,7 +294,6 @@ func HandleConnectToChat(wsChatService ws.ChatServiceInterface) utils.APIHandler
 				break
 			}
 		}
-		fmt.Println("Closing connection for userID:", c.User.ID)
 		return wsChatService.CloseConn(chatID, connID)
 	}
 }
@@ -333,7 +335,7 @@ func HandleUpdateChatName(chatService store.ChatServiceInterface, chatWsService 
 				Message: "You cannot change name of private chat",
 			}
 		}
-		users, err := chatService.GetUsersFromChat(chat.ID)
+		users, err := chatService.GetChatMembers(chat.ID)
 		userIsMember := slices.ContainsFunc(users, func(user *models.User) bool {
 			return user.ID == c.User.ID
 		})

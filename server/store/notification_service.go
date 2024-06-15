@@ -163,12 +163,21 @@ func (s *NotificationService) CreateNewMessageNotificationsForUsers(
 	for _, userID := range userIDs {
 		values = append(
 			values,
-			fmt.Sprintf("(%d, false, %s, %s)", userID, jsonData, nmn.String()),
+			fmt.Sprintf("(%d, false, @json_data, @type)", userID),
 		)
 	}
 
+	if len(values) == 0 {
+		slog.Info("no notifications to create")
+		return make([]*models.NewMessageNotification, 0), nil
+	}
+
 	rows, err := s.db.Query(
-		"INSERT INTO notifications (user_id, seen, data, type) VALUES " + strings.Join(values, ",") + "RETURNING id, type, seen, data, user_id created_at, updated_at;",
+		"INSERT INTO notifications (user_id, seen, data, type) VALUES "+strings.Join(values, ",")+" RETURNING id, type, seen, data, user_id, created_at, updated_at;",
+		pgx.NamedArgs{
+			"json_data": jsonData,
+			"type":      nmn.String(),
+		},
 	)
 
 	ns := make([]*models.NewMessageNotification, 0)
