@@ -295,8 +295,6 @@ func (s *ChatService) getChatMembers(tx *sql.Tx, filter *GetMembersFilters) ([]*
 		where = append(where, "cu.user_id NOT IN "+idList)
 	}
 
-	fmt.Println("where SQL output:", whereSQL(where), "args:", args)
-
 	rows, err := tx.Query(`
 		SELECT 
 			u.id, u.username, u.email, u.active, u.password, u.created_at, u.updated_at 

@@ -39,7 +39,6 @@ func setupRoutes(
 	mux.HandleFunc("/friends/requests", utils.HandlerFunc(authMiddleware(handlers.HandleGetFriendRequests(friendshipService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/friends/requests/{requestId}/accept", utils.HandlerFunc(authMiddleware(handlers.HandleAcceptFriendRequest(friendshipService)))).Methods(http.MethodPost)
 	mux.HandleFunc("/friends/requests/{requestId}/reject", utils.HandlerFunc(authMiddleware(handlers.HandleRejectFriendRequest(friendshipService)))).Methods(http.MethodPost)
-	mux.HandleFunc("/friends/requests/notifications", utils.HandlerFunc(authMiddleware(handlers.HandleGetFriendRequestNotifications(notificationStore)))).Methods(http.MethodGet)
 
 	mux.HandleFunc("/chats", utils.HandlerFunc(authMiddleware(handlers.HandleGetUsersChats(chatService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/chats/private", utils.HandlerFunc(authMiddleware(handlers.HandleCreatePrivateChat(chatService, friendshipService, v)))).Methods(http.MethodPost)
@@ -55,6 +54,8 @@ func setupRoutes(
 		utils.WsHandler(wsAuthMiddleware(handlers.HandleSubscribeNotifications(notificationsWsService))),
 	).Methods(http.MethodGet)
 
-	mux.HandleFunc("/notifications/mark-as-seen", utils.HandlerFunc(authMiddleware(handlers.HandleMakeNotificationsSeen(notificationStore)))).Methods(http.MethodPut)
+	mux.HandleFunc("/notifications/friend-requests/mark-as-seen", utils.HandlerFunc(authMiddleware(handlers.HandleMarkFriendRequestNotificationsAsSeen(notificationStore)))).Methods(http.MethodPut)
+	mux.HandleFunc("/notifications/new-messages/mark-as-seen", utils.HandlerFunc(authMiddleware(handlers.HandleMarkNewMessageNotificationsAsSeen(notificationStore, chatService, v)))).Methods(http.MethodPut)
 	mux.HandleFunc("/notifications/new-messages", utils.HandlerFunc(authMiddleware(handlers.HandleGetNewMessageNotifications(notificationStore)))).Methods(http.MethodGet)
+	mux.HandleFunc("/notifications/friend-requests", utils.HandlerFunc(authMiddleware(handlers.HandleGetFriendRequestNotifications(notificationStore)))).Methods(http.MethodGet)
 }

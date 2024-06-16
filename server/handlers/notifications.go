@@ -3,9 +3,11 @@ package handlers
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/store"
+	"github.com/kacperhemperek/discord-go/types"
 	"github.com/kacperhemperek/discord-go/utils"
 	"github.com/kacperhemperek/discord-go/ws"
 	"log/slog"
@@ -26,14 +28,51 @@ func HandleSubscribeNotifications(notificationWsService ws.NotificationServiceIn
 		return notificationWsService.RemoveConn(c.User.ID, connID)
 	}
 }
-func HandleMakeNotificationsSeen(notificationsStore store.NotificationServiceInterface) utils.APIHandler {
+func HandleMarkFriendRequestNotificationsAsSeen(notificationsStore store.NotificationServiceInterface) utils.APIHandler {
 	type response struct {
 		Message string `json:"message"`
 	}
 	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
-		typeFilter := r.URL.Query().Get("type")
+		frn := types.FriendRequestNotification
+		err := notificationsStore.MarkUsersNotificationsAsSeen(c.User.ID, frn.String())
 
-		err := notificationsStore.MarkUsersNotificationsAsSeenByType(c.User.ID, typeFilter)
+		if err != nil {
+			return err
+		}
+
+		return utils.WriteJson(w, http.StatusOK, &response{
+			Message: "notifications marked as seen",
+		})
+	}
+}
+
+func HandleMarkNewMessageNotificationsAsSeen(notificationsStore store.NotificationServiceInterface, chatsStore store.ChatServiceInterface, validate *validator.Validate) utils.APIHandler {
+	type request struct {
+		ChatID int `json:"chatId" validate:"number,min=1"`
+	}
+
+	type response struct {
+		Message string `json:"message"`
+	}
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
+		body := &request{}
+		if err := utils.ReadAndValidateBody(r, body, validate); err != nil {
+			return &utils.APIError{
+				Code:    http.StatusBadRequest,
+				Message: "Provided payload is invalid",
+				Cause:   err,
+			}
+		}
+
+		_, err := chatsStore.GetChatByID(body.ChatID)
+		if err != nil && errors.Is(err, sql.ErrNoRows) {
+			return &utils.APIError{
+				Code:    http.StatusNotFound,
+				Message: fmt.Sprintf("Chat with id: %d could not be fund, notifications could not be marked as seen", body.ChatID),
+				Cause:   err,
+			}
+		}
+		err = notificationsStore.MarkUsersNewMessageNotificationsAsSeenByChatID(c.User.ID, body.ChatID)
 
 		if err != nil {
 			return err

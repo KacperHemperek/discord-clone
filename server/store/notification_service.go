@@ -16,11 +16,14 @@ import (
 )
 
 type NotificationServiceInterface interface {
-	CreateFriendRequestNotification(userID int, data models.FriendRequestNotificationData) (*models.FriendRequestNotification, error)
 	GetUserFriendRequestNotifications(userID int, seen *BoolFilter, limit *LimitFilter) ([]*models.FriendRequestNotification, error)
-	MarkUsersNotificationsAsSeenByType(userID int, nType string) error
-	CreateNewMessageNotificationsForUsers(userIDs []int, data *models.NewMessageNotificationData) ([]*models.NewMessageNotification, error)
 	GetUserNewMessageNotifications(userID int, seen *BoolFilter, limit *LimitFilter) ([]*models.NewMessageNotification, error)
+
+	CreateFriendRequestNotification(userID int, data models.FriendRequestNotificationData) (*models.FriendRequestNotification, error)
+	CreateNewMessageNotificationsForUsers(userIDs []int, data *models.NewMessageNotificationData) ([]*models.NewMessageNotification, error)
+
+	MarkUsersNotificationsAsSeen(userID int, nType string) error
+	MarkUsersNewMessageNotificationsAsSeenByChatID(userID, chatID int) error
 }
 
 type NotificationService struct {
@@ -106,7 +109,7 @@ func (s *NotificationService) GetUserFriendRequestNotifications(
 	return notifications, nil
 }
 
-func (s *NotificationService) MarkUsersNotificationsAsSeenByType(userID int, nType string) error {
+func (s *NotificationService) MarkUsersNotificationsAsSeen(userID int, nType string) error {
 	tx, err := s.db.Begin()
 	defer func() {
 		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
@@ -225,6 +228,50 @@ func (s *NotificationService) GetUserNewMessageNotifications(userID int, seen *B
 	return ns, nil
 }
 
+func (s *NotificationService) MarkUsersNewMessageNotificationsAsSeenByChatID(userID, chatID int) error {
+	tx, err := s.db.Begin()
+	defer func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			slog.Error("rollback tx", "error", err)
+		}
+	}()
+	if err != nil {
+		return err
+	}
+
+	seen, err := NewBoolFilter("false")
+	if err != nil {
+		return err
+	}
+
+	nmn := types.NewMessageNotification
+	nmnStr := nmn.String()
+	userNewMessageNotifications, err := s.findNewMessageNotifications(tx, &FindNotificationFilters{
+		Seen:   seen,
+		UserID: &userID,
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, n := range userNewMessageNotifications {
+		if n.Data.ChatID != chatID {
+			continue
+		}
+		err = s.markAsSeen(tx, &UpdateNotificationFilters{
+			UserID:         &userID,
+			Type:           &nmnStr,
+			Seen:           seen,
+			NotificationID: &n.ID,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
 func (s *NotificationService) markAsSeen(tx *sql.Tx, filters *UpdateNotificationFilters) error {
 
 	where := make([]string, 0)
@@ -243,6 +290,11 @@ func (s *NotificationService) markAsSeen(tx *sql.Tx, filters *UpdateNotification
 	if v := filters.Seen; v != nil {
 		where = append(where, "seen = @seen")
 		args["seen"] = v
+	}
+
+	if v := filters.NotificationID; v != nil {
+		where = append(where, "id = @id")
+		args["id"] = v
 	}
 
 	_, err := tx.Exec(
@@ -352,6 +404,7 @@ func (s *NotificationService) findNewMessageNotifications(tx *sql.Tx, filters *F
 			&n.Type,
 			&n.UserID,
 			&n.Data,
+			&n.Seen,
 			&n.CreatedAt,
 			&n.UpdatedAt,
 		)
@@ -371,9 +424,10 @@ type FindNotificationFilters struct {
 }
 
 type UpdateNotificationFilters struct {
-	UserID *int
-	Type   *string
-	Seen   *BoolFilter
+	UserID         *int
+	Type           *string
+	Seen           *BoolFilter
+	NotificationID *int
 }
 
 func NewNotificationService(db *Database, v *validator.Validate) *NotificationService {
