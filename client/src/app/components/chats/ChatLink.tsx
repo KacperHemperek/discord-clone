@@ -1,6 +1,8 @@
 import { Link, useMatch } from "react-router-dom";
 import { ChatType } from "@app/api";
 import { cn } from "../../utils/cn";
+import { useNotifications } from "@app/context/NotificationsProvider.tsx";
+import { useMemo } from "react";
 
 type ChatLinkProps = {
   name: string;
@@ -14,6 +16,13 @@ type ChatLinkProps = {
 export default function ChatLink({ id, name, type, users }: ChatLinkProps) {
   const link = `/home/chats/${id}`;
 
+  const { newMessageNotifications: notifications } = useNotifications();
+
+  const hasNotifications = useMemo(
+    () => !!notifications && notifications.some((n) => n.data.chatId === id),
+    [notifications, id],
+  );
+
   const match = useMatch(link);
 
   if (type === ChatType.PRIVATE) {
@@ -26,7 +35,11 @@ export default function ChatLink({ id, name, type, users }: ChatLinkProps) {
         )}
       >
         {/* TODO: replace div with actual user avatar */}
-        <div className="w-8 h-8 min-w-[2rem] rounded-full bg-dc-neutral-800" />
+        <div className="w-8 h-8 min-w-[2rem] rounded-full bg-dc-neutral-800 relative">
+          {hasNotifications && (
+            <span className="p-1.5 rounded-full bg-dc-red-500 absolute -top-0.5 -left-0.5" />
+          )}
+        </div>
         <p className="truncate">{name}</p>
       </Link>
     );
@@ -36,11 +49,14 @@ export default function ChatLink({ id, name, type, users }: ChatLinkProps) {
     <Link
       to={link}
       className={cn(
-        "w-52 p-2 rounded-sm hover:bg-dc-neutral-900 flex gap-3 cursor-pointer transition-colors duration-100",
+        "w-52 p-2 rounded-sm hover:bg-dc-neutral-900 flex gap-3 cursor-pointer transition-colors duration-100 relative",
         !!match && "bg-dc-neutral-850",
       )}
     >
-      <div className="flex items-center justify-center w-8 h-8 min-w-[2rem] rounded-full bg-dc-neutral-800">
+      <div className="flex relative items-center justify-center w-8 h-8 min-w-[2rem] rounded-full bg-dc-neutral-800">
+        {hasNotifications && (
+          <span className="p-1.5 rounded-full bg-dc-red-500 absolute -top-0.5 -left-0.5" />
+        )}
         {name?.charAt(0).toUpperCase()}
       </div>
       <div className="flex-grow flex flex-col min-w-0 gap-1">

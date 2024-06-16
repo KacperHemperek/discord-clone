@@ -1,11 +1,11 @@
 import { Outlet } from "react-router-dom";
 import { User } from "lucide-react";
-import { useFriendRequests } from "../../context/FriendRequestsProvider";
+import { useNotifications } from "../../context/NotificationsProvider.tsx";
 import { FriendsNavLink } from "../../components/friends/FriendsNavLink";
 
 export default function FriendsLayout() {
   const { hasUnseenFriendRequestNotifications: hasNewRequests } =
-    useFriendRequests();
+    useNotifications();
 
   return (
     <>

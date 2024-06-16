@@ -15,15 +15,15 @@ import {
 } from "@app/api";
 import { useAuth } from "@app/context/AuthProvider";
 import OneDayChatMessageGroup from "@app/components/chats/OneDayChatMessageGroup";
-import { useChatId } from "@app/hooks/useChatId.ts";
-import { useWebsocket } from "@app/api/ws.ts";
+import { useChatId } from "@app/hooks/useChatId";
+import { useWebsocket } from "@app/api/hooks/useWebsocket";
 import {
   ChatNameUpdatedWsSchema,
   NewMessageWsSchema,
   NewMessageWsType,
-} from "@app/api/wstypes/chats.ts";
-import { ClientError } from "@app/utils/clientError.ts";
-import { cn } from "@app/utils/cn.ts";
+} from "@app/api/wstypes/chats";
+import { ClientError } from "@app/utils/clientError";
+import { cn } from "@app/utils/cn";
 import { MessageCircle } from "lucide-react";
 
 const nameChangeSchema = z.object({
@@ -158,7 +158,7 @@ function SendHelloMessageList({ sendMessage }: SendHelloMessageListProps) {
 }
 
 export default function PrivateChat() {
-  const { user } = useAuth();
+  const { user, accessToken, refreshToken } = useAuth();
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = React.useState<string>("");
 
@@ -243,10 +243,12 @@ export default function PrivateChat() {
 
   React.useEffect(() => {
     const messageHandler = handleMessage(onMessage);
-    wsRef.current = connect(
-      `/chats/${chatId}`,
-      "Could not connect to chat, please try again later",
-    );
+    wsRef.current = connect({
+      path: `/chats/${chatId}`,
+      accessToken,
+      refreshToken,
+      errMessage: "Could not connect to chat, please try again later",
+    });
 
     if (wsRef.current) {
       wsRef.current.addEventListener("message", messageHandler);
@@ -257,7 +259,7 @@ export default function PrivateChat() {
         wsRef.current.close();
       }
     };
-  }, [chatId]);
+  }, [chatId, refreshToken, accessToken, onMessage, connect]);
 
   function sendMessage(e: React.FormEvent) {
     e.preventDefault();

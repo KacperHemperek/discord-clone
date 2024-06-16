@@ -22,4 +22,8 @@ export class QueryKeys {
   static getFriendRequestNotifications() {
     return ["friend-request-notifications"];
   }
+
+  static getNewMessageNotifications() {
+    return ["new-message-notifications"];
+  }
 }
