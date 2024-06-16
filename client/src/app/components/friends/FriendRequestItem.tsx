@@ -19,8 +19,11 @@ export default function FriendRequestItem({
     mutationKey: ["accept-friend-request", id],
     mutationFn: async () => api.post(`/friends/requests/${id}/accept`),
     onSuccess: async () => {
-      await queryClient.refetchQueries({
+      await queryClient.invalidateQueries({
         queryKey: QueryKeys.getPendingFriendRequests(),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: QueryKeys.getAllFriends(),
       });
       toast.success("Friend request accepted, user added to friends list");
     },

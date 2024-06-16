@@ -27,7 +27,7 @@ function useNotificationsContextValue() {
     queryKey: QueryKeys.getFriendRequestNotifications(),
     queryFn: async () =>
       api.get<GetNotificationsResponse<FriendRequestNotification>>(
-        `/friends/requests/notifications?seen=false&limit=5`,
+        `/notifications/friend-requests?seen=false&limit=5`,
       ),
   });
 
