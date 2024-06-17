@@ -1,7 +1,4 @@
 import React from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useGroupedMessages } from "@app/hooks/useGroupedMessages";
 import { useToast } from "@app/hooks/useToast";
@@ -22,116 +19,10 @@ import {
   NewMessageWsSchema,
   NewMessageWsType,
 } from "@app/api/wstypes/chats";
-import { ClientError } from "@app/utils/clientError";
 import { cn } from "@app/utils/cn";
 import { MessageCircle } from "lucide-react";
 import { MutationKeys } from "@app/api/mutationKeys.ts";
-
-const nameChangeSchema = z.object({
-  newName: z.string(),
-});
-
-type NameChangeFormData = z.infer<typeof nameChangeSchema>;
-
-function NameChangeElement({
-  name,
-  chatId,
-  disabled,
-  updateChatName,
-}: {
-  name: string;
-  chatId: number;
-  updateChatName: (name: string) => void;
-  disabled?: boolean;
-}) {
-  const [oldChatName, setOldChatName] = React.useState<string | null>(null);
-
-  const queryClient = useQueryClient();
-  const toast = useToast();
-  const { mutate, isPending } = useMutation<
-    SuccessMessageResponse,
-    ClientError,
-    NameChangeFormData
-  >({
-    mutationFn: async (data: NameChangeFormData) =>
-      api.put<SuccessMessageResponse>(`/chats/${chatId}/update-name`, {
-        body: JSON.stringify(data),
-      }),
-    onMutate: async (inputData) => {
-      updateChatName(inputData.newName);
-      const oldData = queryClient.getQueryData<GetAllChats>(
-        QueryKeys.getAllChats(),
-      );
-
-      if (!oldData) return;
-
-      const newChatList = oldData.chats.map((c) => {
-        if (c.id === chatId) {
-          return {
-            ...c,
-            name: inputData.newName,
-          };
-        }
-
-        return c;
-      });
-
-      const newData: GetAllChats = {
-        chats: newChatList,
-      };
-
-      queryClient.setQueryData(QueryKeys.getAllChats(), newData);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: QueryKeys.getAllChats(),
-      });
-    },
-    onError: async (err) => {
-      if (err.code === 400) {
-        toast.error("New chat name must be between 6 and 32 characters");
-      } else {
-        toast.error("Unknown error when changing chat name");
-      }
-      await queryClient.invalidateQueries({
-        queryKey: QueryKeys.getAllChats(),
-      });
-
-      if (!oldChatName) return;
-
-      updateChatName(oldChatName);
-    },
-  });
-
-  const form = useForm<NameChangeFormData>({
-    resolver: zodResolver(nameChangeSchema),
-    defaultValues: {
-      newName: name,
-    },
-  });
-
-  React.useEffect(() => {
-    form.setValue("newName", name);
-  }, [chatId, name, form]);
-
-  return (
-    <form
-      onSubmit={form.handleSubmit((data) => {
-        setOldChatName(name);
-        mutate(data);
-      })}
-    >
-      <input
-        type="text"
-        {...form.register("newName")}
-        className="px-2 rounded-md bg-transparent border ring-0 border-transparent font-semibold hover:border-dc-neutral-950 focus:bg-dc-neutral-950 focus:border-dc-neutral-1000 disabled:hover:bg-transparent disabled:hover:border-transparent disabled:cursor-text"
-        size={form.watch("newName").length}
-        disabled={disabled || isPending}
-      />
-      <button className="hidden" type="submit" />
-    </form>
-  );
-}
+import { PrivateChatHeader } from "@app/components/chats/PrivateChatHeader.tsx";
 
 type SendHelloMessageListProps = {
   sendMessage: (message: string) => void;
@@ -297,16 +188,6 @@ export default function PrivateChat() {
     setNewMessage("");
   }
 
-  function updateChatName(name: string) {
-    queryClient.setQueryData(
-      QueryKeys.getChat(chatId),
-      (oldData: GetChat): GetChat => ({
-        ...oldData,
-        name,
-      }),
-    );
-  }
-
   if (!chatInfo) return null;
 
   const placeholder =
@@ -317,17 +198,7 @@ export default function PrivateChat() {
   return (
     <div className="max-h-screen h-full flex-grow flex">
       <div className="flex-grow flex flex-col">
-        <nav className="border-b flex border-dc-neutral-1000 w-full p-3 gap-4">
-          {!!chatInfo.name && !!chatId && (
-            <NameChangeElement
-              name={chatInfo.name}
-              disabled={chatInfo.type === ChatType.PRIVATE}
-              chatId={chatId}
-              updateChatName={updateChatName}
-            />
-          )}
-        </nav>
-
+        <PrivateChatHeader name={chatInfo.name} type={chatInfo.type} />
         {groupedMessages.length === 0 && (
           <div className="flex flex-col items-center justify-center mx-auto flex-grow">
             <MessageCircle size={48} className="text-dc-neutral-300" />
