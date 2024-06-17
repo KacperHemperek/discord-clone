@@ -1,5 +1,6 @@
 import { VariantProps, cva } from "class-variance-authority";
 import { Link, useMatch } from "react-router-dom";
+import { NotificationBadge } from "@app/components/NotificationBadge.tsx";
 
 type LinkVariants = VariantProps<typeof link>;
 
@@ -57,9 +58,7 @@ export function FriendsNavLink({ to, label, showBadge, variant }: LinkProps) {
         state: match ? "active" : "inactive",
       })}
     >
-      {showBadge && (
-        <div className="p-1.5 rounded-full bg-dc-red-500 absolute -top-[4px] -right-[4px]" />
-      )}
+      {showBadge && <NotificationBadge className="-top-1 -right-1" />}
       {label}
     </Link>
   );

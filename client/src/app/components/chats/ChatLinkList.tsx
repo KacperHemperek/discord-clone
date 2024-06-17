@@ -8,22 +8,29 @@ import CreateGroupChat from "./CreateGroupChat";
 import { useAuth } from "../../context/AuthProvider";
 import ChatLink from "./ChatLink";
 import Button from "@app/components/Button.tsx";
+import { useNotifications } from "@app/context/NotificationsProvider.tsx";
+import { NotificationBadge } from "@app/components/NotificationBadge.tsx";
 
 function FriendsLink() {
+  const { friendRequestNotifications } = useNotifications();
   const link = "/home/friends";
 
   const linkToMatch = "/home/friends/*";
 
   const match = useMatch(linkToMatch);
 
+  const hasNotifications =
+    Boolean(friendRequestNotifications?.some((n) => !n.seen)) && !match;
+
   return (
     <Link
       to={link}
       className={cn(
-        "w-52 p-2 rounded-sm hover:bg-dc-neutral-900 flex flex-col gap-1 cursor-pointer transition-colors duration-100 mb-6",
+        "w-52 p-2 rounded-sm relative hover:bg-dc-neutral-900 flex flex-col gap-1 cursor-pointer transition-colors duration-100 mb-6",
         !!match && "bg-dc-neutral-850",
       )}
     >
+      {hasNotifications && <NotificationBadge className="top-0.5 left-0.5" />}
       <h3 className="font-medium text-lg flex gap-2 items-center">
         <User size={20} />
         Friends

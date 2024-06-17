@@ -3,6 +3,7 @@ import { ChatType } from "@app/api";
 import { cn } from "../../utils/cn";
 import { useNotifications } from "@app/context/NotificationsProvider.tsx";
 import { useMemo } from "react";
+import { NotificationBadge } from "@app/components/NotificationBadge.tsx";
 
 type ChatLinkProps = {
   name: string;
@@ -37,7 +38,7 @@ export default function ChatLink({ id, name, type, users }: ChatLinkProps) {
         {/* TODO: replace div with actual user avatar */}
         <div className="w-8 h-8 min-w-[2rem] rounded-full bg-dc-neutral-800 relative">
           {hasNotifications && (
-            <span className="p-1.5 rounded-full bg-dc-red-500 absolute -top-0.5 -left-0.5" />
+            <NotificationBadge className="-left-0.5 -top-0.5" />
           )}
         </div>
         <p className="truncate">{name}</p>
