@@ -238,7 +238,7 @@ func HandleSendMessage(
 		}
 
 		for _, n := range notifications {
-			err := notificationService.SendNotification(n.UserID, *n)
+			err := notificationService.SendNotification(n.UserID, n)
 			if err != nil {
 				slog.Error("could not send new message notification", "userID", n.UserID)
 			}
