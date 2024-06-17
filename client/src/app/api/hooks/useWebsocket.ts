@@ -52,23 +52,26 @@ export function useWebsocket() {
     [getWsUrl, toast],
   );
 
-  function handleMessage(
-    cb: (data: unknown, eventRaw?: MessageEvent<string>) => void,
-  ): (event: MessageEvent<string>) => void {
-    return function (event) {
-      const data = getData(event.data);
-      if (data != null) {
-        const updateTokenResult = UpdateAuthTokenSchema.safeParse(data);
-        if (updateTokenResult.success) {
-          const { accessToken, refreshToken } = updateTokenResult.data;
-          setAccessToken(accessToken);
-          setRefreshToken(refreshToken);
-          return;
+  const handleMessage = React.useCallback(
+    (
+      cb: (data: unknown, eventRaw?: MessageEvent<string>) => void,
+    ): ((event: MessageEvent<string>) => void) => {
+      return function (event) {
+        const data = getData(event.data);
+        if (data != null) {
+          const updateTokenResult = UpdateAuthTokenSchema.safeParse(data);
+          if (updateTokenResult.success) {
+            const { accessToken, refreshToken } = updateTokenResult.data;
+            setAccessToken(accessToken);
+            setRefreshToken(refreshToken);
+            return;
+          }
         }
-      }
-      cb(data, event);
-    };
-  }
+        cb(data, event);
+      };
+    },
+    [getData, setAccessToken, setRefreshToken],
+  );
 
   return {
     handleMessage,

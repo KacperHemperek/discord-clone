@@ -25,6 +25,7 @@ import {
 import { ClientError } from "@app/utils/clientError";
 import { cn } from "@app/utils/cn";
 import { MessageCircle } from "lucide-react";
+import { MutationKeys } from "@app/api/mutationKeys.ts";
 
 const nameChangeSchema = z.object({
   newName: z.string(),
@@ -159,10 +160,22 @@ function SendHelloMessageList({ sendMessage }: SendHelloMessageListProps) {
 
 export default function PrivateChat() {
   const { user, accessToken, refreshToken } = useAuth();
+  const chatId = useChatId();
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = React.useState<string>("");
+  const { mutate: markNotificationsAsSeen } = useMutation({
+    mutationKey: MutationKeys.markNewMessageNotificationsAsSeen(chatId),
+    mutationFn: (chatId: number) =>
+      api.put<SuccessMessageResponse>(
+        "/notifications/new-messages/mark-as-seen",
+        {
+          body: JSON.stringify({
+            chatId,
+          }),
+        },
+      ),
+  });
 
-  const chatId = useChatId();
   const toast = useToast();
   const wsRef = React.useRef<WebSocket | null>(null);
 
@@ -242,7 +255,14 @@ export default function PrivateChat() {
   );
 
   React.useEffect(() => {
-    const messageHandler = handleMessage(onMessage);
+    const cleanup = () => {
+      if (wsRef.current) {
+        wsRef.current?.close();
+      }
+    };
+    if (refreshToken.length === 0 || accessToken.length === 0) {
+      return cleanup;
+    }
     wsRef.current = connect({
       path: `/chats/${chatId}`,
       accessToken,
@@ -251,15 +271,15 @@ export default function PrivateChat() {
     });
 
     if (wsRef.current) {
-      wsRef.current.addEventListener("message", messageHandler);
+      wsRef.current.addEventListener("message", handleMessage(onMessage));
     }
 
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, [chatId, refreshToken, accessToken, onMessage, connect]);
+    return cleanup;
+  }, [chatId, refreshToken, accessToken, onMessage, connect, handleMessage]);
+
+  React.useEffect(() => {
+    markNotificationsAsSeen(chatId);
+  }, [chatId, markNotificationsAsSeen]);
 
   function sendMessage(e: React.FormEvent) {
     e.preventDefault();

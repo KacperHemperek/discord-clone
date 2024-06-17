@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, QueryKeys, GetLoggedInUserResponse } from "@app/api";
 
-export function useUserQuery() {
+export function useAuthValue() {
   const [accessToken, setAccessToken] = React.useState("");
   const [refreshToken, setRefreshToken] = React.useState("");
 
@@ -28,24 +28,21 @@ export function useUserQuery() {
     }
   }, [userError]);
 
-  return {
-    accessToken,
-    refreshToken,
-    setAccessToken,
-    setRefreshToken,
-    user: data,
-    isLoadingUser,
-    userError,
-  };
+  return React.useMemo(
+    () => ({
+      accessToken,
+      refreshToken,
+      setAccessToken,
+      setRefreshToken,
+      user: data,
+      isLoadingUser,
+      userError,
+    }),
+    [accessToken, data, isLoadingUser, refreshToken, userError],
+  );
 }
 
-function useGetAuthValue() {
-  const userQuery = useUserQuery();
-
-  return { ...userQuery };
-}
-
-type AuthProviderValue = ReturnType<typeof useGetAuthValue>;
+type AuthProviderValue = ReturnType<typeof useAuthValue>;
 
 const AuthContext = React.createContext<AuthProviderValue | null>(null);
 
@@ -64,7 +61,7 @@ export default function AuthProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const value = useGetAuthValue();
+  const value = useAuthValue();
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
