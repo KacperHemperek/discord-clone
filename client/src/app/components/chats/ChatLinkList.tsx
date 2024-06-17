@@ -26,7 +26,7 @@ function FriendsLink() {
     <Link
       to={link}
       className={cn(
-        "w-52 p-2 rounded-sm relative hover:bg-dc-neutral-900 flex flex-col gap-1 cursor-pointer transition-colors duration-100 mb-6",
+        "w-52 p-2 rounded-sm relative text-dc-neutral-200 hover:text-dc-neutral-50 hover:bg-dc-neutral-900 flex flex-col gap-1 cursor-pointer transition-colors duration-100 mb-6",
         !!match && "bg-dc-neutral-850",
       )}
     >
