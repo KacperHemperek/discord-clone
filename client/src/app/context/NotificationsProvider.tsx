@@ -1,7 +1,7 @@
 import React from "react";
 import { useWebsocket } from "@app/api/hooks/useWebsocket";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, QueryKeys } from "@app/api";
+import { api, GetAllChats, QueryKeys } from "@app/api";
 import {
   FriendRequestNotification,
   FriendRequestNotificationSchema,
@@ -60,8 +60,21 @@ function useNotificationsContextValue() {
 
       const newMessageValidation = NewMessageNotificationSchema.safeParse(data);
       if (newMessageValidation.success) {
+        const chatId = newMessageValidation.data.data.chatId;
+        const allChats = queryClient.getQueryData<GetAllChats>(
+          QueryKeys.getAllChats(),
+        );
+        const chatExists = Boolean(
+          allChats?.chats.some((chat) => chatId === chat.id),
+        );
+        if (!chatExists) {
+          void queryClient.invalidateQueries({
+            queryKey: QueryKeys.getAllChats(),
+          });
+        }
+
         queryClient.setQueryData(
-          QueryKeys.getFriendRequestNotifications(),
+          QueryKeys.getNewMessageNotifications(),
           (oldData: GetNotificationsResponse<NewMessageNotification>) => {
             return {
               notifications: [

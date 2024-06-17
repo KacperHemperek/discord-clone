@@ -174,6 +174,11 @@ export default function PrivateChat() {
           }),
         },
       ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: QueryKeys.getNewMessageNotifications(),
+      });
+    },
   });
 
   const toast = useToast();
