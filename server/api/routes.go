@@ -14,6 +14,7 @@ import (
 func setupRoutes(
 	mux *mux.Router,
 	authMiddleware middlewares.AuthMiddleware,
+	isChatMemberMiddleware middlewares.IsChatMemberMiddleware,
 	connectWsMiddleware middlewares.ConnectWsMiddleware,
 	wsAuthMiddleware middlewares.WsAuthMiddleware,
 	userService *store.UserService,
@@ -46,6 +47,7 @@ func setupRoutes(
 	mux.HandleFunc("/chats/{chatID}/messages", utils.HandlerFunc(authMiddleware(handlers.HandleSendMessage(chatService, messageService, chatWsService, notificationStore, notificationsWsService, v)))).Methods(http.MethodPost)
 	mux.HandleFunc("/chats/{chatID}", utils.HandlerFunc(authMiddleware(handlers.HandleGetChatWithMessages(chatService)))).Methods(http.MethodGet)
 	mux.HandleFunc("/chats/{chatID}/update-name", utils.HandlerFunc(authMiddleware(handlers.HandleUpdateChatName(chatService, chatWsService, v)))).Methods(http.MethodPut)
+	mux.HandleFunc("/chats/{chatID}/members/add", utils.HandlerFunc(authMiddleware(isChatMemberMiddleware(handlers.HandleAddUsersToChat(chatService, v))))).Methods(http.MethodPost)
 
 	mux.HandleFunc("/ws/chats/{chatID}", utils.WsHandler(wsAuthMiddleware(handlers.HandleConnectToChat(chatWsService)))).Methods(http.MethodGet)
 

@@ -41,10 +41,12 @@ func (s *Server) Start() error {
 	authMiddleware := middlewares.NewAuthMiddleware()
 	connectWsMiddleware := middlewares.NewConnectWsMiddleware()
 	wsAuthMiddleware := middlewares.NewWsAuthMiddleware()
+	isChatMemberMiddleware := middlewares.NewIsChatMemberMiddleware(chatService)
 
 	setupRoutes(
 		router,
 		authMiddleware,
+		isChatMemberMiddleware,
 		connectWsMiddleware,
 		wsAuthMiddleware,
 		userService,

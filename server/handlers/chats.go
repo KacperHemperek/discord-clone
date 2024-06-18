@@ -75,6 +75,25 @@ func HandleCreatePrivateChat(
 	}
 }
 
+func HandleAddUsersToChat(chatsStore store.ChatServiceInterface, v *validator.Validate) utils.APIHandler {
+	type request struct {
+		UserIDs []int `json:"userIds" validation:"min=1,unique,dive,number,min=1"`
+	}
+
+	type response struct {
+		UserIDs []int `json:"userIds"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request, c *utils.APIContext) error {
+		body := &request{}
+		if err := utils.ReadAndValidateBody(r, body, v); err != nil {
+			return err
+		}
+
+		return utils.WriteJson(w, http.StatusOK, &response{UserIDs: body.UserIDs})
+	}
+}
+
 type CreateGroupChatRequestBody struct {
 	UserIDs []int `json:"userIds"`
 }
@@ -185,11 +204,7 @@ func HandleSendMessage(
 		chat, err := chatService.GetChatByID(chatID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return &utils.APIError{
-					Code:    http.StatusNotFound,
-					Message: "Chat was not found",
-					Cause:   err,
-				}
+				return utils.NewNotFoundError("chat", "id", chatID)
 			}
 			return err
 		}
@@ -322,10 +337,8 @@ func HandleUpdateChatName(chatService store.ChatServiceInterface, chatWsService 
 		chat, err := chatService.GetChatByID(chatID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return &utils.APIError{
-					Code:    http.StatusNotFound,
-					Message: "Chat not found",
-				}
+				return utils.NewNotFoundError("chat", "id", chatID)
+
 			}
 			return err
 		}
