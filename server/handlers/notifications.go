@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/kacperhemperek/discord-go/models"
 	"github.com/kacperhemperek/discord-go/store"
@@ -59,18 +58,14 @@ func HandleMarkNewMessageNotificationsAsSeen(notificationsStore store.Notificati
 		if err := utils.ReadAndValidateBody(r, body, validate); err != nil {
 			return &utils.APIError{
 				Code:    http.StatusBadRequest,
-				Message: "Provided payload is invalid",
+				Message: "provided payload is invalid",
 				Cause:   err,
 			}
 		}
 
 		_, err := chatsStore.GetChatByID(body.ChatID)
 		if err != nil && errors.Is(err, sql.ErrNoRows) {
-			return &utils.APIError{
-				Code:    http.StatusNotFound,
-				Message: fmt.Sprintf("Chat with id: %d could not be fund, notifications could not be marked as seen", body.ChatID),
-				Cause:   err,
-			}
+			return utils.NewNotFoundError("chat", "id", body.ChatID)
 		}
 		err = notificationsStore.MarkUsersNewMessageNotificationsAsSeenByChatID(c.User.ID, body.ChatID)
 
@@ -95,13 +90,13 @@ func HandleGetNewMessageNotifications(notificationsStore store.NotificationServi
 		seenFilter, err := store.NewBoolFilter(seen)
 
 		if err != nil {
-			return utils.NewInvalidQueryParamErr("seen", seen, err)
+			return utils.NewInvalidQueryParamError("seen", seen, err)
 		}
 
 		limitFilter, err := store.NewLimitFilter(limit)
 
 		if err != nil {
-			return utils.NewInvalidQueryParamErr("limit", limit, err)
+			return utils.NewInvalidQueryParamError("limit", limit, err)
 		}
 
 		notifications, err := notificationsStore.GetUserNewMessageNotifications(c.User.ID, seenFilter, limitFilter)

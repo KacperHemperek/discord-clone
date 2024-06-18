@@ -159,14 +159,17 @@ func HandleAcceptFriendRequest(friendshipService store.FriendshipServiceInterfac
 
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return &utils.APIError{Code: http.StatusNotFound, Message: "Friend request not found", Cause: err}
+				return utils.NewNotFoundError("friend request", "id", requestId)
 			}
-
-			return &utils.APIError{Code: http.StatusInternalServerError, Message: "Unknown error when getting friend request", Cause: err}
+			return err
 		}
 
 		if friendship.FriendID != c.User.ID {
-			return &utils.APIError{Code: http.StatusForbidden, Message: "You cannot accept this friend request", Cause: nil}
+			return &utils.APIError{
+				Code:    http.StatusForbidden,
+				Message: "You cannot accept this friend request",
+				Cause:   nil,
+			}
 		}
 
 		if friendship.Status != "pending" {
@@ -244,10 +247,7 @@ func HandleRemoveFriend(friendshipService store.FriendshipServiceInterface) util
 		friend, err := friendshipService.GetFriendshipByUsers(friendID, c.User.ID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return &utils.APIError{
-					Code:    http.StatusNotFound,
-					Message: "User does not have a friend with that id",
-				}
+				return utils.NewNotFoundError("friend request", "id", friendID)
 			}
 			return err
 		}
@@ -269,11 +269,11 @@ func HandleGetFriendRequestNotifications(notificationStore store.NotificationSer
 		seenParam := r.URL.Query().Get("seen")
 		seen, err := store.NewBoolFilter(seenParam)
 		if err != nil {
-			return utils.NewInvalidQueryParamErr("seen", *seen, err)
+			return utils.NewInvalidQueryParamError("seen", *seen, err)
 		}
 		limit, err := store.NewLimitFilter(r.URL.Query().Get("limit"))
 		if err != nil {
-			return utils.NewInvalidQueryParamErr("limit", *limit, err)
+			return utils.NewInvalidQueryParamError("limit", *limit, err)
 		}
 		notifications, err := notificationStore.GetUserFriendRequestNotifications(
 			c.User.ID,
